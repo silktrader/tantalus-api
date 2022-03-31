@@ -1,20 +1,23 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Tantalus.Data;
 using Tantalus.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var services = builder.Services;
 
-builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
+services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
 
-builder.Services.AddDbContext<DataContext>();
+services.AddDbContext<DataContext>();
 
-builder.Services.AddCors();
+services.AddCors();
 
-builder.Services.AddControllers();
+services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options => {
         options.TokenValidationParameters = new TokenValidationParameters {
             ValidateIssuer = false,
@@ -26,9 +29,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+services.AddAuthorization();
 
-builder.Services.AddScoped<IUserService, UserService>();
+services.AddScoped<IUserService, UserService>();
+services.AddScoped<IFoodService, FoodService>();
 
 var app = builder.Build();
 

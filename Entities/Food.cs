@@ -1,7 +1,8 @@
 ﻿namespace Tantalus.Entities;
 
 public class Food {
-    public Guid Id { get; init; }
+    
+    public Guid Id { get; set; }
 
     public string FullName { get; set; }
     public string ShortUrl { get; set; }
@@ -39,7 +40,7 @@ public class Food {
     public string? Source { get; set; }
     public string? Notes { get; set; }
 
-    public Guid UserId { get; init; }
+    public Guid UserId { get; set; }
     public User User { get; }
     public VisibleState Visibility { get; set; }
 

@@ -113,11 +113,6 @@ public class UserService : IUserService {
         _dataContext.SaveChanges();
     }
 
-    // private User? GetUserByRefreshToken(string token) {
-    //     return _dataContext.Users.Include(user => user.RefreshTokens)
-    //         .SingleOrDefault(user => user.RefreshTokens.Any(t => t.Contents == token)) ?? null;
-    // }
-
     // remove old inactive refresh tokens from user based on TTL in app settings
     private void RemoveOldRefreshTokens(User user) {
         user.RefreshTokens.RemoveAll(token => !token.IsActive && token.CreationDate.AddDays(_settings.ExpiredTokensDuration) <= DateTime.UtcNow);

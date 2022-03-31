@@ -81,7 +81,7 @@ public class DataContext : DbContext {
 
         builder.Entity<Food>(entity => {
             entity.Property(food => food.FullName).IsRequired().HasMaxLength(100);
-            entity.Property(food => food.ShortUrl).HasMaxLength(25);
+            entity.Property(food => food.ShortUrl).HasMaxLength(50);
             
             entity.Property(food => food.Proteins).HasDefaultValue(0);
             entity.Property(food => food.Carbs).HasDefaultValue(0);
