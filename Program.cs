@@ -11,6 +11,7 @@ var services = builder.Services;
 services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
 
 services.AddDbContext<DataContext>();
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;     // absurd requirement to correctly map Postgres attribute names
 
 services.AddCors();
 

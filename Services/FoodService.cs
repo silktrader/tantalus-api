@@ -1,5 +1,8 @@
 ﻿using System.Text;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Dapper;
+using Npgsql;
 using Tantalus.Data;
 using Tantalus.Entities;
 using Tantalus.Models;
@@ -7,31 +10,41 @@ using Tantalus.Models;
 namespace Tantalus.Services;
 
 public interface IFoodService {
-    Task<FoodResponse> AddFood(FoodRequest foodRequest, Guid userId);
+    Task<Food> AddFood(FoodRequest foodRequest, Guid userId);
+    Task<Food?> GetFood(string shortUrl);
 }
 
 public class FoodService : IFoodService {
     
     private readonly DataContext _dataContext;
     private readonly IMapper _mapper;
+    private readonly string _connectionString;
 
-    public FoodService(DataContext dataContext, IMapper mapper) {
+    public FoodService(DataContext dataContext, IMapper mapper, IConfiguration configuration) {
         _dataContext = dataContext;
         _mapper = mapper;
+        _connectionString = configuration.GetConnectionString("Database") ?? throw new InvalidOperationException();
     }
 
-    public async Task<FoodResponse> AddFood(FoodRequest foodRequest, Guid userId) {
+    public async Task<Food> AddFood(FoodRequest foodRequest, Guid userId) {
         
         // add missing data when necessary
         var food = _mapper.Map<Food>(foodRequest);
-        food.Id = Guid.NewGuid();
+        food.Id = Guid.NewGuid();           // can delegate Guid generation to Postgres
         food.ShortUrl = ShortenUrl(food.FullName);
         food.UserId = userId;
         
         // insert into "Foods" ("Id", "FullName", "ShortUrl", "UserId") values (gen_random_uuid (), 'Banana', 'banana', 'e1bcbc54-52bd-4618-9f27-deef344f9f57')
         await _dataContext.Foods.AddAsync(food);
         await _dataContext.SaveChangesAsync();
-        return _mapper.Map<FoodResponse>(food);
+        return food;
+    }
+
+    public async Task<Food?> GetFood(string shortUrl) {
+        const string query = "SELECT * FROM foods WHERE short_url=@shortUrl";
+        await using var connection = new NpgsqlConnection(_connectionString);
+        return (await connection.QueryAsync<Food>(query, new { shortUrl })).FirstOrDefault();
+        // return await _dataContext.Foods.FirstOrDefaultAsync(food => food.ShortUrl == shortUrl);
     }
     
     private static string ShortenUrl(string url) {
