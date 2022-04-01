@@ -13,15 +13,14 @@ using Tantalus.Entities;
 namespace Tantalus.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20220331094640_AddFood")]
-    partial class AddFood
+    [Migration("20220401073156_Initial")]
+    partial class Initial
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.0-preview.2.22153.1")
+                .HasAnnotation("ProductVersion", "6.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "revocation_reason", new[] { "replaced", "manual", "revoked_ancestor" });
@@ -32,221 +31,270 @@ namespace Tantalus.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<float>("Alcohol")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("alcohol");
 
                     b.Property<float>("Calcium")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("calcium");
 
                     b.Property<float>("Carbs")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("carbs");
 
                     b.Property<float>("Cholesterol")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("cholesterol");
 
                     b.Property<DateTime>("Created")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created")
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<float>("Fats")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("fats");
 
                     b.Property<float>("Fibres")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("fibres");
 
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("full_name");
 
                     b.Property<float>("Iron")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("iron");
 
                     b.Property<float>("Magnesium")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("magnesium");
 
                     b.Property<float>("Monounsaturated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("monounsaturated");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
 
                     b.Property<float>("Omega3")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("omega3");
 
                     b.Property<float>("Omega6")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("omega6");
 
                     b.Property<float>("Polyunsaturated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("polyunsaturated");
 
                     b.Property<float>("Potassium")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("potassium");
 
                     b.Property<float>("Proteins")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("proteins");
 
                     b.Property<float>("Saturated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("saturated");
 
                     b.Property<string>("ShortUrl")
                         .IsRequired()
-                        .HasMaxLength(25)
-                        .HasColumnType("character varying(25)");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("short_url");
 
                     b.Property<float>("Sodium")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("sodium");
 
                     b.Property<string>("Source")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("source");
 
                     b.Property<float>("Starch")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("starch");
 
                     b.Property<float>("Sugar")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("sugar");
 
                     b.Property<float>("Trans")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("trans");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
-                    b.Property<int>("Visibility")
+                    b.Property<Food.VisibleState>("Visibility")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
+                        .HasColumnType("visible_state")
+                        .HasDefaultValue(Food.VisibleState.Private)
+                        .HasColumnName("visibility");
 
                     b.Property<float>("Zinc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("real")
-                        .HasDefaultValue(0f);
+                        .HasDefaultValue(0f)
+                        .HasColumnName("zinc");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_foods");
 
                     b.HasIndex("ShortUrl")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_foods_short_url");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_foods_user_id");
 
-                    b.ToTable("Foods");
+                    b.ToTable("foods", (string)null);
                 });
 
             modelBuilder.Entity("Tantalus.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.Property<DateTime>("CreationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creation_date");
 
                     b.Property<DateTime>("ExpiryDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expiry_date");
 
                     b.Property<RefreshToken.RevocationReason?>("ReasonRevoked")
-                        .HasColumnType("revocation_reason");
+                        .HasColumnType("revocation_reason")
+                        .HasColumnName("reason_revoked");
 
                     b.Property<string>("ReplacedBy")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("replaced_by");
 
                     b.Property<DateTime?>("RevocationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revocation_date");
 
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("value");
 
-                    b.HasKey("UserId", "CreationDate");
+                    b.HasKey("UserId", "CreationDate")
+                        .HasName("pk_refresh_tokens");
 
                     b.HasIndex("Value")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_refresh_tokens_value");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("refresh_tokens", (string)null);
                 });
 
             modelBuilder.Entity("Tantalus.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creation_date");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
 
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("full_name");
 
                     b.Property<string>("HashedPassword")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("hashed_password");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("name");
 
                     b.Property<string>("PasswordSalt")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("password_salt");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_users");
 
                     b.HasIndex("Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_name");
 
-                    b.ToTable("Users");
+                    b.ToTable("users", (string)null);
                 });
 
             modelBuilder.Entity("Tantalus.Entities.Food", b =>
@@ -255,7 +303,8 @@ namespace Tantalus.Migrations
                         .WithMany("Foods")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_foods_users_user_id");
 
                     b.Navigation("User");
                 });
@@ -266,7 +315,8 @@ namespace Tantalus.Migrations
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_refresh_tokens_users_user_id");
 
                     b.Navigation("User");
                 });

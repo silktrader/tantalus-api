@@ -22,14 +22,14 @@ public class DataContext : DbContext {
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
         optionsBuilder.UseNpgsql(
-            _configuration.GetConnectionString("Database") ?? throw new InvalidOperationException());
+                _configuration.GetConnectionString("Database") ?? throw new InvalidOperationException())
+            .UseSnakeCaseNamingConvention();
     }
 
     protected override void OnModelCreating(ModelBuilder builder) {
-
         builder.HasPostgresEnum<RefreshToken.RevocationReason>();
         builder.HasPostgresEnum<Food.VisibleState>();
-        
+
         builder.Entity<User>(entity => {
             entity.Property(user => user.Name)
                 .IsRequired()
@@ -53,7 +53,7 @@ public class DataContext : DbContext {
                 .HasMaxLength(64);
         });
         builder.Entity<User>().HasIndex(user => user.Name).IsUnique();
-        
+
         builder.Entity<RefreshToken>(entity => {
             entity.HasKey(token => new {
                 token.UserId, token.CreationDate
@@ -82,15 +82,15 @@ public class DataContext : DbContext {
         builder.Entity<Food>(entity => {
             entity.Property(food => food.FullName).IsRequired().HasMaxLength(100);
             entity.Property(food => food.ShortUrl).HasMaxLength(50);
-            
+
             entity.Property(food => food.Proteins).HasDefaultValue(0);
             entity.Property(food => food.Carbs).HasDefaultValue(0);
             entity.Property(food => food.Fats).HasDefaultValue(0);
-            
+
             entity.Property(food => food.Fibres).HasDefaultValue(0);
             entity.Property(food => food.Sugar).HasDefaultValue(0);
             entity.Property(food => food.Starch).HasDefaultValue(0);
-            
+
             entity.Property(food => food.Saturated).HasDefaultValue(0);
             entity.Property(food => food.Monounsaturated).HasDefaultValue(0);
             entity.Property(food => food.Polyunsaturated).HasDefaultValue(0);
@@ -98,7 +98,7 @@ public class DataContext : DbContext {
             entity.Property(food => food.Cholesterol).HasDefaultValue(0);
             entity.Property(food => food.Omega3).HasDefaultValue(0);
             entity.Property(food => food.Omega6).HasDefaultValue(0);
-            
+
             entity.Property(food => food.Sodium).HasDefaultValue(0);
             entity.Property(food => food.Potassium).HasDefaultValue(0);
             entity.Property(food => food.Magnesium).HasDefaultValue(0);
@@ -106,11 +106,11 @@ public class DataContext : DbContext {
             entity.Property(food => food.Zinc).HasDefaultValue(0);
             entity.Property(food => food.Iron).HasDefaultValue(0);
             entity.Property(food => food.Alcohol).HasDefaultValue(0);
-            
+
             entity.Property(food => food.Created).IsRequired().HasDefaultValueSql("NOW()");
-            
+
             entity.Property(food => food.Visibility).IsRequired().HasDefaultValue(Food.VisibleState.Private);
-            
+
             entity.HasOne(food => food.User)
                 .WithMany(user => user.Foods)
                 .HasForeignKey(food => food.UserId)
