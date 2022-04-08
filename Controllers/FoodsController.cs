@@ -33,4 +33,10 @@ public class FoodsController : TantalusController {
         if (food.UserId != UserGuid) return Unauthorized();
         return Ok(_mapper.Map<FoodResponse>(food));
     } 
+    
+    [Authorize]
+    [HttpDelete("{foodId:guid}")]
+    public async Task<ActionResult<FoodResponse>> DeleteFood(Guid foodId) {
+        return await _foodService.Delete(foodId, UserGuid) ? NoContent() : BadRequest();
+    } 
 }

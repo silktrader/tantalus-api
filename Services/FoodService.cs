@@ -11,6 +11,7 @@ namespace Tantalus.Services;
 public interface IFoodService {
     Task<Food> AddFood(FoodRequest foodRequest, Guid userId);
     Task<Food?> GetFood(string shortUrl);
+    Task<bool> Delete(Guid foodId, Guid userId);
 }
 
 public class FoodService : IFoodService {
@@ -48,6 +49,12 @@ public class FoodService : IFoodService {
         await using var connection = new NpgsqlConnection(_connectionString);
         return (await connection.QueryAsync<Food>(query, new { shortUrl })).FirstOrDefault();
         // return await _dataContext.Foods.FirstOrDefaultAsync(food => food.ShortUrl == shortUrl);
+    }
+
+    public async Task<bool> Delete(Guid foodId, Guid userId) {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        return connection.ExecuteAsync("DELETE FROM foods WHERE id = @foodId AND user_id = @userId",
+            new { foodId, userId }).Result > 0;
     }
 
     private async Task<bool> Exists(string shortUrl) {
