@@ -31,8 +31,13 @@ public class FoodService : IFoodService {
         // add missing data when necessary
         var food = _mapper.Map<Food>(foodRequest);
         food.Id = Guid.NewGuid();           // can delegate Guid generation to Postgres
-        food.ShortUrl = ShortenUrl(food.FullName);
         food.UserId = userId;
+        
+        // generate an appropriate short URL, possibly with a randomly generated ID
+        var shortUrl = ShortenUrl(food.FullName);
+        if (await GetFood(shortUrl) != null)
+            shortUrl = $"{shortUrl}-{await Nanoid.Nanoid.GenerateAsync(size: 4)}";
+        food.ShortUrl = shortUrl; 
         
         // insert into "Foods" ("Id", "FullName", "ShortUrl", "UserId") values (gen_random_uuid (), 'Banana', 'banana', 'e1bcbc54-52bd-4618-9f27-deef344f9f57')
         await _dataContext.Foods.AddAsync(food);
