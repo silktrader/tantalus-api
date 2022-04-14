@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Tantalus.Entities;
 using Tantalus.Models;
 using Tantalus.Services;
 
@@ -32,8 +33,16 @@ public class FoodsController : TantalusController {
         if (food == null) return NotFound();
         if (food.UserId != UserGuid) return Unauthorized();
         return Ok(_mapper.Map<FoodResponse>(food));
-    } 
+    }
+
+    public record GetFoodsParameters(int PageIndex, int PageSize, string SortProperty, string SortOrder, string? NameFilter);
     
+    [Authorize]
+    public async Task<ActionResult> GetFoods([FromQuery] GetFoodsParameters parameters) {
+        var foods = _mapper.Map<FoodResponse[]>(await _foodService.GetFoods(parameters, UserGuid));
+        return Ok(new { foods, count = foods.Length});
+    }
+
     [Authorize]
     [HttpDelete("{foodId:guid}")]
     public async Task<ActionResult<FoodResponse>> DeleteFood(Guid foodId) {

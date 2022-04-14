@@ -15,7 +15,11 @@ Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;     // absurd requiremen
 
 services.AddCors();
 
-services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+services.AddControllers().AddJsonOptions(options => {
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
+
 services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Tantalus.Data;
@@ -12,9 +13,10 @@ using Tantalus.Entities;
 namespace Tantalus.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20220413230123_RenameFoodName")]
+    partial class RenameFoodName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,12 +34,16 @@ namespace Tantalus.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<float?>("Alcohol")
+                    b.Property<float>("Alcohol")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("alcohol");
 
-                    b.Property<float?>("Calcium")
+                    b.Property<float>("Calcium")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("calcium");
 
                     b.Property<float>("Carbs")
@@ -46,8 +52,10 @@ namespace Tantalus.Migrations
                         .HasDefaultValue(0f)
                         .HasColumnName("carbs");
 
-                    b.Property<float?>("Cholesterol")
+                    b.Property<float>("Cholesterol")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("cholesterol");
 
                     b.Property<DateTime>("Created")
@@ -62,20 +70,28 @@ namespace Tantalus.Migrations
                         .HasDefaultValue(0f)
                         .HasColumnName("fats");
 
-                    b.Property<float?>("Fibres")
+                    b.Property<float>("Fibres")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("fibres");
 
-                    b.Property<float?>("Iron")
+                    b.Property<float>("Iron")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("iron");
 
-                    b.Property<float?>("Magnesium")
+                    b.Property<float>("Magnesium")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("magnesium");
 
-                    b.Property<float?>("Monounsaturated")
+                    b.Property<float>("Monounsaturated")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("monounsaturated");
 
                     b.Property<string>("Name")
@@ -88,20 +104,28 @@ namespace Tantalus.Migrations
                         .HasColumnType("text")
                         .HasColumnName("notes");
 
-                    b.Property<float?>("Omega3")
+                    b.Property<float>("Omega3")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("omega3");
 
-                    b.Property<float?>("Omega6")
+                    b.Property<float>("Omega6")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("omega6");
 
-                    b.Property<float?>("Polyunsaturated")
+                    b.Property<float>("Polyunsaturated")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("polyunsaturated");
 
-                    b.Property<float?>("Potassium")
+                    b.Property<float>("Potassium")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("potassium");
 
                     b.Property<float>("Proteins")
@@ -110,8 +134,10 @@ namespace Tantalus.Migrations
                         .HasDefaultValue(0f)
                         .HasColumnName("proteins");
 
-                    b.Property<float?>("Saturated")
+                    b.Property<float>("Saturated")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("saturated");
 
                     b.Property<string>("ShortUrl")
@@ -120,24 +146,32 @@ namespace Tantalus.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("short_url");
 
-                    b.Property<float?>("Sodium")
+                    b.Property<float>("Sodium")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("sodium");
 
                     b.Property<string>("Source")
                         .HasColumnType("text")
                         .HasColumnName("source");
 
-                    b.Property<float?>("Starch")
+                    b.Property<float>("Starch")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("starch");
 
-                    b.Property<float?>("Sugar")
+                    b.Property<float>("Sugar")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("sugar");
 
-                    b.Property<float?>("Trans")
+                    b.Property<float>("Trans")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("trans");
 
                     b.Property<Guid>("UserId")
@@ -150,8 +184,10 @@ namespace Tantalus.Migrations
                         .HasDefaultValue(Food.VisibleState.Private)
                         .HasColumnName("visibility");
 
-                    b.Property<float?>("Zinc")
+                    b.Property<float>("Zinc")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("real")
+                        .HasDefaultValue(0f)
                         .HasColumnName("zinc");
 
                     b.HasKey("Id")

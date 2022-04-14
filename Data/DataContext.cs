@@ -80,32 +80,32 @@ public class DataContext : DbContext {
         builder.Entity<RefreshToken>().HasIndex(token => token.Value).IsUnique();
 
         builder.Entity<Food>(entity => {
-            entity.Property(food => food.FullName).IsRequired().HasMaxLength(100);
+            entity.Property(food => food.Name).IsRequired().HasMaxLength(100);
             entity.Property(food => food.ShortUrl).HasMaxLength(50);
 
             entity.Property(food => food.Proteins).HasDefaultValue(0);
             entity.Property(food => food.Carbs).HasDefaultValue(0);
             entity.Property(food => food.Fats).HasDefaultValue(0);
 
-            entity.Property(food => food.Fibres).HasDefaultValue(0);
-            entity.Property(food => food.Sugar).HasDefaultValue(0);
-            entity.Property(food => food.Starch).HasDefaultValue(0);
+            entity.Property(food => food.Fibres).HasDefaultValue(null);
+            entity.Property(food => food.Sugar).HasDefaultValue(null);
+            entity.Property(food => food.Starch).HasDefaultValue(null);
 
-            entity.Property(food => food.Saturated).HasDefaultValue(0);
-            entity.Property(food => food.Monounsaturated).HasDefaultValue(0);
-            entity.Property(food => food.Polyunsaturated).HasDefaultValue(0);
-            entity.Property(food => food.Trans).HasDefaultValue(0);
-            entity.Property(food => food.Cholesterol).HasDefaultValue(0);
-            entity.Property(food => food.Omega3).HasDefaultValue(0);
-            entity.Property(food => food.Omega6).HasDefaultValue(0);
+            entity.Property(food => food.Saturated).HasDefaultValue(null);
+            entity.Property(food => food.Monounsaturated).HasDefaultValue(null);
+            entity.Property(food => food.Polyunsaturated).HasDefaultValue(null);
+            entity.Property(food => food.Trans).HasDefaultValue(null);
+            entity.Property(food => food.Cholesterol).HasDefaultValue(null);
+            entity.Property(food => food.Omega3).HasDefaultValue(null);
+            entity.Property(food => food.Omega6).HasDefaultValue(null);
 
-            entity.Property(food => food.Sodium).HasDefaultValue(0);
-            entity.Property(food => food.Potassium).HasDefaultValue(0);
-            entity.Property(food => food.Magnesium).HasDefaultValue(0);
-            entity.Property(food => food.Calcium).HasDefaultValue(0);
-            entity.Property(food => food.Zinc).HasDefaultValue(0);
-            entity.Property(food => food.Iron).HasDefaultValue(0);
-            entity.Property(food => food.Alcohol).HasDefaultValue(0);
+            entity.Property(food => food.Sodium).HasDefaultValue(null);
+            entity.Property(food => food.Potassium).HasDefaultValue(null);
+            entity.Property(food => food.Magnesium).HasDefaultValue(null);
+            entity.Property(food => food.Calcium).HasDefaultValue(null);
+            entity.Property(food => food.Zinc).HasDefaultValue(null);
+            entity.Property(food => food.Iron).HasDefaultValue(null);
+            entity.Property(food => food.Alcohol).HasDefaultValue(null);
 
             entity.Property(food => food.Created).IsRequired().HasDefaultValueSql("NOW()");
 

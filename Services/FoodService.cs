@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using AutoMapper;
+using Controllers;
 using Dapper;
 using Npgsql;
 using Tantalus.Data;
@@ -12,6 +13,7 @@ public interface IFoodService {
     Task<Food> AddFood(FoodRequest foodRequest, Guid userId);
     Task<Food?> GetFood(string shortUrl);
     Task<bool> Delete(Guid foodId, Guid userId);
+    Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId);
 }
 
 public class FoodService : IFoodService {
@@ -33,7 +35,7 @@ public class FoodService : IFoodService {
         food.UserId = userId;
 
         // generate an appropriate short URL, possibly with a randomly generated ID
-        var shortUrl = ShortenUrl(food.FullName);
+        var shortUrl = ShortenUrl(food.Name);
         if (await Exists(shortUrl))
             shortUrl = $"{shortUrl}-{await Nanoid.Nanoid.GenerateAsync(size: 4)}";
         food.ShortUrl = shortUrl;
@@ -49,6 +51,13 @@ public class FoodService : IFoodService {
         await using var connection = new NpgsqlConnection(_connectionString);
         return (await connection.QueryAsync<Food>(query, new { shortUrl })).FirstOrDefault();
         // return await _dataContext.Foods.FirstOrDefaultAsync(food => food.ShortUrl == shortUrl);
+    }
+
+    public async Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId) {
+        // tk substitute enum values
+        const string query = "SELECT * FROM foods WHERE user_id = @userId or visibility='shared' or visibility='editable'";
+        await using var connection = new NpgsqlConnection(_connectionString);
+        return await connection.QueryAsync<Food>(query, new { userId });
     }
 
     public async Task<bool> Delete(Guid foodId, Guid userId) {

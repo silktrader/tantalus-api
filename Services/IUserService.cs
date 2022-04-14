@@ -4,7 +4,7 @@ using Tantalus.Models;
 namespace Tantalus.Services;
 
 public interface IUserService {
-    Task<UserLoginResponse?> Login(string userName, string password);
+    Task<UserLoginResponse?> Login(string name, string password);
     Task Register(UserRegisterRequest request);
     void RevokeToken(Guid userId, string token);
     UserLoginResponse RefreshToken(string tokenValue);

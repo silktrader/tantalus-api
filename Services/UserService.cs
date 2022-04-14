@@ -21,8 +21,8 @@ public class UserService : IUserService {
         _settings = settings.Value;
     }
 
-    public async Task<UserLoginResponse?> Login(string userName, string password) {
-        var user = await _dataContext.Users.SingleOrDefaultAsync(user => user.Name == userName);
+    public async Task<UserLoginResponse?> Login(string name, string password) {
+        var user = await _dataContext.Users.SingleOrDefaultAsync(user => user.Name == name);
 
         // invalid user name or password
         if (user == null || ComputeHash(password, Convert.FromBase64String(user.PasswordSalt)) != user.HashedPassword)
@@ -35,7 +35,7 @@ public class UserService : IUserService {
         // remove old inactive refresh tokens based on exported TTL
         user.RefreshTokens.RemoveAll(token =>
             !token.IsActive && token.CreationDate.AddDays(_settings.ExpiredTokensDuration) <= DateTime.UtcNow
-        );
+        ); // tk user dapper
 
         _dataContext.Update(user);
         await _dataContext.SaveChangesAsync();

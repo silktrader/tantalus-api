@@ -21,10 +21,10 @@ public class UsersController : ControllerBase {
                    string.Empty);
 
     [HttpPost]
-    [Route("login")]
+    [Route("signin")]
     public async Task<IActionResult> Login(UserLoginRequest loginRequest) {
-        var response = await _userService.Login(loginRequest.UserName, loginRequest.Password);
-        if (response == null) return Unauthorized(); // sub with ex handling tk?
+        var response = await _userService.Login(loginRequest.Name, loginRequest.Password);
+        if (response == null) return Unauthorized();
 
         SetTokenCookie(response.RefreshToken);
         return Ok(response);
@@ -84,10 +84,13 @@ public class UsersController : ControllerBase {
     private void SetTokenCookie(string token) {
         var cookieOptions = new CookieOptions {
             HttpOnly = true,
-            Expires = DateTime.UtcNow.AddDays(7)
+            Expires = DateTime.UtcNow.AddDays(7),
+            SameSite = SameSiteMode.None,
+            Secure = true,
+            IsEssential = true,
         };
         Response.Cookies.Append("refreshToken", token, cookieOptions);
     }
 
-    public record UserLoginRequest([Required] string UserName, [Required] string Password);
+    public record UserLoginRequest([Required] string Name, [Required] string Password);
 }
