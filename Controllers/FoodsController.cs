@@ -21,9 +21,23 @@ public class FoodsController : TantalusController {
     
     [Authorize]
     [HttpPost]
-    public async Task<ActionResult> AddFood(FoodRequest foodRequest) {
+    public async Task<ActionResult> AddFood(FoodAddRequest foodRequest) {
         var food = await _foodService.AddFood(foodRequest, UserGuid);
         return CreatedAtAction(nameof(GetFood), new {shortUrl = food.ShortUrl }, _mapper.Map<FoodResponse>(food));
+    }
+    
+    [Authorize]
+    [HttpPut("{foodId:guid}")]
+    public async Task<ActionResult> UpdateFood(FoodUpdateRequest foodRequest, Guid foodId) {
+        var food = await _foodService.GetFood(foodId);
+        if (food == null)
+            return NotFound();
+
+        if (food.UserId != UserGuid && food.Visibility == Food.VisibleState.Private)
+            return BadRequest();
+
+        await _foodService.UpdateFood(foodRequest, food);
+        return NoContent();
     }
 
     [Authorize]

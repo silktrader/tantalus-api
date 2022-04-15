@@ -54,7 +54,7 @@ public class UsersController : ControllerBase {
 
         try {
             var response = _userService.RefreshToken(refreshToken);
-            SetTokenCookie(response.RefreshToken);
+            SetTokenCookie(response.RefreshToken); // tk shouldn't the cookie be removed from the response?
             return Ok(response);
         }
         catch (Exception) {

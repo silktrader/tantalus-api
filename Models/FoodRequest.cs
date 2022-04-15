@@ -1,12 +1,8 @@
-﻿
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Tantalus.Models;
 
-public record FoodRequest {
-    [Required]
-    public string FullName { get; set; }
-
+public abstract record FoodRequest {
     // macronutrients
     public float? Proteins { get; set; }
     public float? Carbs { get; set; }
@@ -38,7 +34,15 @@ public record FoodRequest {
 
     public string? Source { get; set; }
     public string? Notes { get; set; }
+}
 
-    [Required]
-    public Entities.Food.VisibleState Visibility { get; set; }
+public sealed record FoodAddRequest : FoodRequest {
+    [Required] public string Name { get; init; }
+    [Required] public Entities.Food.VisibleState Visibility { get; init; }
+}
+
+public sealed record FoodUpdateRequest : FoodRequest {
+    [Required] public Guid Id { get; init; }
+    public string? Name { get; init; }
+    public Entities.Food.VisibleState? Visibility { get; init; }
 }

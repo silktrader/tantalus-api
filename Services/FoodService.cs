@@ -2,6 +2,7 @@
 using AutoMapper;
 using Controllers;
 using Dapper;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tantalus.Data;
 using Tantalus.Entities;
@@ -10,8 +11,10 @@ using Tantalus.Models;
 namespace Tantalus.Services;
 
 public interface IFoodService {
-    Task<Food> AddFood(FoodRequest foodRequest, Guid userId);
+    Task<Food> AddFood(FoodAddRequest foodRequest, Guid userId);
+    Task<Food?> GetFood(Guid foodId);
     Task<Food?> GetFood(string shortUrl);
+    Task<Food> UpdateFood(FoodUpdateRequest foodRequest, Food food);
     Task<bool> Delete(Guid foodId, Guid userId);
     Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId);
 }
@@ -21,6 +24,7 @@ public class FoodService : IFoodService {
 
     private readonly DataContext _dataContext;
     private readonly IMapper _mapper;
+    private NpgsqlConnection DbConnection => new NpgsqlConnection(_connectionString);
 
     public FoodService(DataContext dataContext, IMapper mapper, IConfiguration configuration) {
         _dataContext = dataContext;
@@ -28,7 +32,7 @@ public class FoodService : IFoodService {
         _connectionString = configuration.GetConnectionString("Database") ?? throw new InvalidOperationException();
     }
 
-    public async Task<Food> AddFood(FoodRequest foodRequest, Guid userId) {
+    public async Task<Food> AddFood(FoodAddRequest foodRequest, Guid userId) {
         // add missing data when necessary
         var food = _mapper.Map<Food>(foodRequest);
         food.Id = Guid.NewGuid(); // can delegate Guid generation to Postgres
@@ -51,6 +55,19 @@ public class FoodService : IFoodService {
         await using var connection = new NpgsqlConnection(_connectionString);
         return (await connection.QueryAsync<Food>(query, new { shortUrl })).FirstOrDefault();
         // return await _dataContext.Foods.FirstOrDefaultAsync(food => food.ShortUrl == shortUrl);
+    }
+
+    public async Task<Food?> GetFood(Guid foodId) {
+        const string query = "SELECT * FROM foods WHERE id=@foodId";
+        await using var connection = DbConnection ;
+        return await connection.QueryFirstOrDefaultAsync<Food>(query, new { foodId });
+    }
+
+    public async Task<Food> UpdateFood(FoodUpdateRequest foodRequest, Food food) {
+        _mapper.Map(foodRequest, food);
+        _dataContext.Entry(food).State = EntityState.Modified;
+        await _dataContext.SaveChangesAsync();
+        return food;
     }
 
     public async Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId) {
