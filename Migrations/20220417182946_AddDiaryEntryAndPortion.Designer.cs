@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Tantalus.Data;
@@ -12,9 +13,10 @@ using Tantalus.Entities;
 namespace Tantalus.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20220417182946_AddDiaryEntryAndPortion")]
+    partial class AddDiaryEntryAndPortion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -28,7 +30,7 @@ namespace Tantalus.Migrations
 
             modelBuilder.Entity("Tantalus.Entities.DiaryEntry", b =>
                 {
-                    b.Property<DateTime>("Date")
+                    b.Property<DateOnly>("Date")
                         .HasColumnType("date")
                         .HasColumnName("date");
 
@@ -37,6 +39,7 @@ namespace Tantalus.Migrations
                         .HasColumnName("user_id");
 
                     b.Property<string>("Comment")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("comment");
 
@@ -195,7 +198,7 @@ namespace Tantalus.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("Date")
+                    b.Property<DateOnly>("Date")
                         .HasColumnType("date")
                         .HasColumnName("date");
 
@@ -216,15 +219,15 @@ namespace Tantalus.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_portions");
+                        .HasName("pk_portion");
 
                     b.HasIndex("FoodId")
-                        .HasDatabaseName("ix_portions_food_id");
+                        .HasDatabaseName("ix_portion_food_id");
 
                     b.HasIndex("Date", "UserId")
-                        .HasDatabaseName("ix_portions_date_user_id");
+                        .HasDatabaseName("ix_portion_date_user_id");
 
-                    b.ToTable("portions", (string)null);
+                    b.ToTable("portion", (string)null);
                 });
 
             modelBuilder.Entity("Tantalus.Entities.RefreshToken", b =>
@@ -340,14 +343,14 @@ namespace Tantalus.Migrations
                         .HasForeignKey("FoodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_portions_foods_food_id");
+                        .HasConstraintName("fk_portion_foods_food_id");
 
                     b.HasOne("Tantalus.Entities.DiaryEntry", "DiaryEntry")
                         .WithMany("Portions")
                         .HasForeignKey("Date", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_portions_diary_entries_diary_entry_temp_id");
+                        .HasConstraintName("fk_portion_diary_entries_diary_entry_temp_id");
 
                     b.Navigation("DiaryEntry");
 

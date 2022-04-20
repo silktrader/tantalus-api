@@ -17,6 +17,7 @@ public interface IFoodService {
     Task<Food> UpdateFood(FoodUpdateRequest foodRequest, Food food);
     Task<bool> Delete(Guid foodId, Guid userId);
     Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId);
+    Task<IEnumerable<Food>> GetFoods(IEnumerable<Guid> foodIds, Guid userId);
 }
 
 public class FoodService : IFoodService {
@@ -59,7 +60,7 @@ public class FoodService : IFoodService {
 
     public async Task<Food?> GetFood(Guid foodId) {
         const string query = "SELECT * FROM foods WHERE id=@foodId";
-        await using var connection = DbConnection ;
+        await using var connection = DbConnection;
         return await connection.QueryFirstOrDefaultAsync<Food>(query, new { foodId });
     }
 
@@ -72,13 +73,20 @@ public class FoodService : IFoodService {
 
     public async Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId) {
         // tk substitute enum values
-        const string query = "SELECT * FROM foods WHERE user_id = @userId or visibility='shared' or visibility='editable'";
+        const string query = "SELECT * FROM foods WHERE user_id = @userId or visibility in ('shared', 'editable')";
         await using var connection = new NpgsqlConnection(_connectionString);
         return await connection.QueryAsync<Food>(query, new { userId });
     }
+    
+    public async Task<IEnumerable<Food>> GetFoods(IEnumerable<Guid> foodIds, Guid userId) {
+        const string query = "SELECT * FROM foods WHERE id IN @foodIds and (user_id = @userId OR visibility in ('shared', 'editable'))";
+        // id = ANY(@foodIds) is an alternative
+        await using var connection = DbConnection;
+        return await connection.QueryAsync<Food>(query, new { foodIds, userId });
+    }
 
     public async Task<bool> Delete(Guid foodId, Guid userId) {
-        await using var connection = new NpgsqlConnection(_connectionString);
+        await using var connection = DbConnection;
         return connection.ExecuteAsync("DELETE FROM foods WHERE id = @foodId AND user_id = @userId",
             new { foodId, userId }).Result > 0;
     }

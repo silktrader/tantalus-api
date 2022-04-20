@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Tantalus.Data;
+using Tantalus.Models;
 using Tantalus.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,12 +16,16 @@ Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;     // absurd requiremen
 
 services.AddCors();
 
-services.AddControllers().AddJsonOptions(options => {
+// review the reliance on DateOnlyTimeOnly.AspNet in the future
+services.AddControllers(options => {
+    options.UseDateOnlyTimeOnlyStringConverters();
+}).AddJsonOptions(options => {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.UseDateOnlyTimeOnlyStringConverters();
 });
 
-services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 
 services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options => {
@@ -38,6 +43,7 @@ services.AddAuthorization();
 
 services.AddScoped<IUserService, UserService>();
 services.AddScoped<IFoodService, FoodService>();
+services.AddScoped<IDiaryService, DiaryService>();
 
 var app = builder.Build();
 

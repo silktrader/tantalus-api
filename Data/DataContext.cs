@@ -10,6 +10,7 @@ public class DataContext : DbContext {
     static DataContext() {
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RefreshToken.RevocationReason>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<Food.VisibleState>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<Meal>();
     }
 
     public DataContext(IConfiguration configuration) {
@@ -19,6 +20,8 @@ public class DataContext : DbContext {
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<Food> Foods { get; set; } = null!;
+    public DbSet<DiaryEntry> DiaryEntries { get; set; } = null!;
+    public DbSet<Portion> Portions { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
         optionsBuilder.UseNpgsql(
@@ -51,8 +54,9 @@ public class DataContext : DbContext {
             entity.Property(user => user.PasswordSalt)
                 .IsRequired()
                 .HasMaxLength(64);
+            
+            entity.HasIndex(user => user.Name).IsUnique();
         });
-        builder.Entity<User>().HasIndex(user => user.Name).IsUnique();
 
         builder.Entity<RefreshToken>(entity => {
             entity.HasKey(token => new {
@@ -76,8 +80,9 @@ public class DataContext : DbContext {
                 .WithMany(user => user.RefreshTokens)
                 .HasForeignKey(refreshToken => refreshToken.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasIndex(token => token.Value).IsUnique();
         });
-        builder.Entity<RefreshToken>().HasIndex(token => token.Value).IsUnique();
 
         builder.Entity<Food>(entity => {
             entity.Property(food => food.Name).IsRequired().HasMaxLength(100);
@@ -115,7 +120,26 @@ public class DataContext : DbContext {
                 .WithMany(user => user.Foods)
                 .HasForeignKey(food => food.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+            
+            entity.HasIndex(food => food.ShortUrl).IsUnique();
         });
-        builder.Entity<Food>().HasIndex(food => food.ShortUrl).IsUnique();
+
+        builder.Entity<Portion>(entity => {
+            entity.Property(portion => portion.Date).IsRequired().HasColumnType("date");
+            entity.Property(portion => portion.UserId).IsRequired();
+            entity.Property(portion => portion.FoodId).IsRequired();
+            entity.Property(portion => portion.Quantity).IsRequired();
+            entity.Property(portion => portion.Meal).IsRequired();
+            entity.HasOne(portion => portion.DiaryEntry)
+                .WithMany(entry => entry.Portions)
+                .HasForeignKey(portion => new { DiaryEntryDate = portion.Date, DiaryEntryUserId = portion.UserId });
+        });
+        builder.HasPostgresEnum<Meal>();
+
+        builder.Entity<DiaryEntry>(entity => {
+            entity.HasKey(entry => new { entry.Date, entry.UserId });
+            entity.Property(entry => entry.Date).IsRequired().HasColumnType("date");
+            entity.Property(entry => entry.UserId).IsRequired();
+        });
     }
 }
