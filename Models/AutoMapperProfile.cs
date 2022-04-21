@@ -9,5 +9,6 @@ public class AutoMapperProfile : Profile {
         CreateMap<FoodUpdateRequest, Food>();
         CreateMap<Food, FoodResponse>();
         CreateMap<Portion, PortionResponse>();
+        CreateMap<PortionRequest, Portion>();
     }
 }

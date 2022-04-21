@@ -14,7 +14,7 @@ public record PortionRequest {
     [Required, Range(0, 1000)]
     public int Quantity { get; init; }
 
-    [Required]
+    [Required] // tk not sufficient for deserialisation, look into it
     public Meal Meal { get; init; }
 }
 

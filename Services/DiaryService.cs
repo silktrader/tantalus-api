@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Dapper;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tantalus.Data;
 using Tantalus.Entities;
@@ -65,11 +66,27 @@ public class DiaryService : IDiaryService {
         await using var connection = DbConnection;
         return await connection.ExecuteAsync(query, portions);
     }
+
+    public async Task<Portion?> GetPortion(Guid portionId) {
+        const string query = "SELECT * FROM portions WHERE id = @portionId";
+        await using var connection = DbConnection;
+        return await connection.QuerySingleOrDefaultAsync<Portion>(query, new { portionId });
+    }
+
+    public async Task UpdatePortion(Portion portion, PortionRequest portionRequest) {
+        //const string query = "UPDATE portions SET quantity = @quantity, meal = @meal WHERE id = @portionId";
+        // Dapper won't properly map C# enums to Postgresql enums; rather than hack around it's preferable to resort to EF
+        _mapper.Map(portionRequest, portion);
+        _dataContext.Entry(portion).State = EntityState.Modified;
+        await _dataContext.SaveChangesAsync();
+    }
 }
 
 public interface IDiaryService {
     Task<bool> CreateDailyEntry(DateOnly date, Guid userId);
     Task<int> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly date, Guid userId);
     Task<DiaryEntryResponse?> GetDiary(DateOnly date, Guid userId);
+    Task<Portion?> GetPortion(Guid portionId);
+    Task UpdatePortion(Portion portion, PortionRequest portionRequest);
 }
 

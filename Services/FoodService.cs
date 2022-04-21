@@ -25,7 +25,7 @@ public class FoodService : IFoodService {
 
     private readonly DataContext _dataContext;
     private readonly IMapper _mapper;
-    private NpgsqlConnection DbConnection => new NpgsqlConnection(_connectionString);
+    private NpgsqlConnection DbConnection => new(_connectionString);
 
     public FoodService(DataContext dataContext, IMapper mapper, IConfiguration configuration) {
         _dataContext = dataContext;

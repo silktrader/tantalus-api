@@ -7,7 +7,7 @@ using Tantalus.Services;
 
 namespace Controllers; 
 
-[Route("api")]
+[Route("api/[controller]")]
 [Authorize]
 [ApiController]
 public class DiaryController : TantalusController {
@@ -49,7 +49,24 @@ public class DiaryController : TantalusController {
 
         await _diaryService.AddPortions(portionRequests, date, userGuid);
         return Ok(); // tk created at
+    }
+
+    [HttpPut("{date}/portions/{id:guid}")]
+    public async Task<ActionResult> UpdatePortion(DateOnly date, Guid id, PortionRequest portionRequest) {
         
-       
+        // fetch the portion's details first and check whether the user is authorised to change it
+        var portion = await _diaryService.GetPortion(id);
+
+        if (portion == null) 
+            return NotFound();
+
+        if (portion.UserId != UserGuid)
+            return Unauthorized();
+
+        if (DateOnly.FromDateTime(portion.Date) != date)
+            return BadRequest();
+
+        await _diaryService.UpdatePortion(portion, portionRequest);
+        return NoContent();
     }
 }
