@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Models;
 using Tantalus.Entities;
 using Tantalus.Models;
 using Tantalus.Services;
@@ -11,7 +11,7 @@ namespace Controllers;
 [Route("api/[controller]")]
 [Authorize]
 [ApiController]
-public class FoodsController : TantalusController {
+public partial class FoodsController : TantalusController {
 
     private readonly IFoodService _foodService;
     private readonly IMapper _mapper;
@@ -46,32 +46,6 @@ public class FoodsController : TantalusController {
         if (food == null) return NotFound();
         if (food.UserId != UserGuid) return Unauthorized();
         return Ok(_mapper.Map<FoodResponse>(food));
-    }
-
-    public record GetFoodsParameters([Range(0, int.MaxValue)] int PageIndex, [Range(10, 100)] int PageSize, [Required] FoodAttribute SortProperty, [Required] bool Ascending, string? NameFilter);
-
-    public enum FoodAttribute {
-        Name,
-        Carbs,
-        Fats,
-        Proteins,
-        Fibres,
-        Sugar,
-        Starch,
-        Saturated, 
-        Monounsaturated,
-        Polyunsaturated,
-        Trans,
-        Cholesterol, 
-        Omega3,
-        Omega6,
-        Sodium,
-        Potassium, 
-        Magnesium, 
-        Calcium,
-        Zinc, 
-        Iron, 
-        Alcohol
     }
 
     public record PortionResourceResponse(Guid Id, string Name, int Priority, bool? IsRecipe);

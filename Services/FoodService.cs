@@ -3,6 +3,7 @@ using AutoMapper;
 using Controllers;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Models;
 using Npgsql;
 using Tantalus.Data;
 using Tantalus.Entities;
@@ -16,7 +17,7 @@ public interface IFoodService {
     Task<Food?> GetFood(string shortUrl);
     Task<Food> UpdateFood(FoodUpdateRequest foodRequest, Food food);
     Task<bool> Delete(Guid foodId, Guid userId);
-    Task<(IEnumerable<Food> foods, int count)> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId);
+    Task<(IEnumerable<Food> foods, int count)> GetFoods(GetFoodsParameters parameters, Guid userId);
     Task<IEnumerable<Food>> GetFoods(IEnumerable<Guid> foodIds, Guid userId);
     Task<IEnumerable<FoodsController.PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit);
 }
@@ -71,11 +72,27 @@ public class FoodService : IFoodService {
         return food;
     }
 
-    public async Task<(IEnumerable<Food> foods, int count)> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId) {
-        // could use SELECT *, count(*) OVER() AS foods_count etc. but it requires successive normalisation and inevitable memory allocations
+    public async Task<(IEnumerable<Food> foods, int count)> GetFoods(GetFoodsParameters parameters, Guid userId) {
+        // could `SELECT *, count(*) OVER() AS foods_count`, but it requires normalisation and inevitable memory allocations
         const string query = "SELECT COUNT(*) FROM foods WHERE user_id = @userId or visibility in ('shared', 'editable')";
+        
+        // filtering is optional and case insensitive
         var nameFilter = parameters.NameFilter == null ? string.Empty : $"AND name ILIKE '%{parameters.NameFilter}%'";
-        var filter = $"SELECT * FROM foods WHERE (user_id = @userId or visibility in ('shared', 'editable')) {nameFilter} ORDER BY {parameters.SortProperty} {(parameters.Ascending ? "asc" : "desc")} FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
+        
+        // handle special cases when ordering is based on calculated row properties
+        var calculatedProperty = parameters.SortProperty switch {
+            FoodAttribute.Calories => "calories(foods)",
+            FoodAttribute.FatsPercentage => "fats * 9 / Greatest(calories(foods), 0.01)",
+            FoodAttribute.ProteinsPercentage => "proteins * 4 / Greatest(calories(foods), 0.01)",
+            FoodAttribute.CarbsPercentage => "carbs * 4 / Greatest(calories(foods), 0.01)",
+            _ => null
+        };
+
+        var filter = $@"SELECT * FROM foods 
+         WHERE (user_id = @userId or visibility in ('shared', 'editable')) {nameFilter} 
+         ORDER BY {calculatedProperty ?? parameters.SortProperty.ToString()} {(parameters.Ascending ? "asc" : "desc")} 
+         FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
+        
         await using var connection = DbConnection;
         var foods = await connection.QueryAsync<Food>(filter, new { 
             userId,
