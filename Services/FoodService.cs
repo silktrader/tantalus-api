@@ -16,8 +16,9 @@ public interface IFoodService {
     Task<Food?> GetFood(string shortUrl);
     Task<Food> UpdateFood(FoodUpdateRequest foodRequest, Food food);
     Task<bool> Delete(Guid foodId, Guid userId);
-    Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId);
+    Task<(IEnumerable<Food> foods, int count)> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId);
     Task<IEnumerable<Food>> GetFoods(IEnumerable<Guid> foodIds, Guid userId);
+    Task<IEnumerable<FoodsController.PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit);
 }
 
 public class FoodService : IFoodService {
@@ -55,7 +56,6 @@ public class FoodService : IFoodService {
         const string query = "SELECT * FROM foods WHERE short_url=@shortUrl";
         await using var connection = new NpgsqlConnection(_connectionString);
         return (await connection.QueryAsync<Food>(query, new { shortUrl })).FirstOrDefault();
-        // return await _dataContext.Foods.FirstOrDefaultAsync(food => food.ShortUrl == shortUrl);
     }
 
     public async Task<Food?> GetFood(Guid foodId) {
@@ -71,11 +71,18 @@ public class FoodService : IFoodService {
         return food;
     }
 
-    public async Task<IEnumerable<Food>> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId) {
-        // tk substitute enum values
-        const string query = "SELECT * FROM foods WHERE user_id = @userId or visibility in ('shared', 'editable')";
-        await using var connection = new NpgsqlConnection(_connectionString);
-        return await connection.QueryAsync<Food>(query, new { userId });
+    public async Task<(IEnumerable<Food> foods, int count)> GetFoods(FoodsController.GetFoodsParameters parameters, Guid userId) {
+        // could use SELECT *, count(*) OVER() AS foods_count etc. but it requires successive normalisation and inevitable memory allocations
+        const string query = "SELECT COUNT(*) FROM foods WHERE user_id = @userId or visibility in ('shared', 'editable')";
+        var nameFilter = parameters.NameFilter == null ? string.Empty : $"AND name ILIKE '%{parameters.NameFilter}%'";
+        var filter = $"SELECT * FROM foods WHERE (user_id = @userId or visibility in ('shared', 'editable')) {nameFilter} ORDER BY {parameters.SortProperty} {(parameters.Ascending ? "asc" : "desc")} FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
+        await using var connection = DbConnection;
+        var foods = await connection.QueryAsync<Food>(filter, new { 
+            userId,
+            pageSize = parameters.PageSize,
+            offset = parameters.PageIndex * parameters.PageSize });
+        var count = await connection.ExecuteScalarAsync<int>(query,new {userId});        // returns the first column of the first row
+        return (foods, count);
     }
     
     public async Task<IEnumerable<Food>> GetFoods(IEnumerable<Guid> foodIds, Guid userId) {
@@ -93,8 +100,16 @@ public class FoodService : IFoodService {
 
     private async Task<bool> Exists(string shortUrl) {
         const string query = "SELECT EXISTS (SELECT 1 FROM foods WHERE short_url=@shortUrl)";
-        await using var connection = new NpgsqlConnection(_connectionString);
+        await using var connection = DbConnection;
         return await connection.QueryFirstAsync<bool>(query, new { shortUrl });
+    }
+    
+    public async Task<IEnumerable<FoodsController.PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit) {
+        var pattern = $"%{name}%";
+        const string query = 
+            "SELECT id, name, 1 as \"Priority\" FROM foods WHERE name ILIKE @pattern AND (user_id = @userId OR visibility in ('shared', 'editable')) LIMIT @limit";
+        await using var connection = DbConnection;
+        return await connection.QueryAsync<FoodsController.PortionResourceResponse>(query, new { pattern, userId, limit });
     }
 
     private static string ShortenUrl(string url) {

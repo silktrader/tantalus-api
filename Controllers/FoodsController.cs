@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.ComponentModel.DataAnnotations;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tantalus.Entities;
@@ -8,6 +9,7 @@ using Tantalus.Services;
 namespace Controllers; 
 
 [Route("api/[controller]")]
+[Authorize]
 [ApiController]
 public class FoodsController : TantalusController {
 
@@ -19,14 +21,12 @@ public class FoodsController : TantalusController {
         _mapper = mapper;
     }
     
-    [Authorize]
     [HttpPost]
     public async Task<ActionResult> AddFood(FoodAddRequest foodRequest) {
         var food = await _foodService.AddFood(foodRequest, UserGuid);
         return CreatedAtAction(nameof(GetFood), new {shortUrl = food.ShortUrl }, _mapper.Map<FoodResponse>(food));
     }
     
-    [Authorize]
     [HttpPut("{foodId:guid}")]
     public async Task<ActionResult> UpdateFood(FoodUpdateRequest foodRequest, Guid foodId) {
         var food = await _foodService.GetFood(foodId);
@@ -40,7 +40,6 @@ public class FoodsController : TantalusController {
         return NoContent();
     }
 
-    [Authorize]
     [HttpGet("{shortUrl:maxlength(50)}")]
     public async Task<ActionResult<FoodResponse>> GetFood(string shortUrl) {
         var food = await _foodService.GetFood(shortUrl);
@@ -49,17 +48,50 @@ public class FoodsController : TantalusController {
         return Ok(_mapper.Map<FoodResponse>(food));
     }
 
-    public record GetFoodsParameters(int PageIndex, int PageSize, string SortProperty, string SortOrder, string? NameFilter);
-    
-    [Authorize]
-    public async Task<ActionResult> GetFoods([FromQuery] GetFoodsParameters parameters) {
-        var foods = _mapper.Map<FoodResponse[]>(await _foodService.GetFoods(parameters, UserGuid));
-        return Ok(new { foods, count = foods.Length});
+    public record GetFoodsParameters([Range(0, int.MaxValue)] int PageIndex, [Range(10, 100)] int PageSize, [Required] FoodAttribute SortProperty, [Required] bool Ascending, string? NameFilter);
+
+    public enum FoodAttribute {
+        Name,
+        Carbs,
+        Fats,
+        Proteins,
+        Fibres,
+        Sugar,
+        Starch,
+        Saturated, 
+        Monounsaturated,
+        Polyunsaturated,
+        Trans,
+        Cholesterol, 
+        Omega3,
+        Omega6,
+        Sodium,
+        Potassium, 
+        Magnesium, 
+        Calcium,
+        Zinc, 
+        Iron, 
+        Alcohol
     }
 
-    [Authorize]
+    public record PortionResourceResponse(Guid Id, string Name, int Priority, bool? IsRecipe);
+    
+    public async Task<ActionResult> GetFoods([FromQuery] GetFoodsParameters parameters) {
+        var (foodsData, count) = await _foodService.GetFoods(parameters, UserGuid);
+        var foods = _mapper.Map<FoodResponse[]>(foodsData);
+        return Ok(new { foods, count});
+    }
+
     [HttpDelete("{foodId:guid}")]
     public async Task<ActionResult<FoodResponse>> DeleteFood(Guid foodId) {
         return await _foodService.Delete(foodId, UserGuid) ? NoContent() : BadRequest();
-    } 
+    }
+    
+    [HttpGet("filter")]
+    public async Task<ActionResult<IEnumerable<PortionResourceResponse>>> GetFilteredFoods(string name) {
+        if (string.IsNullOrEmpty(name))
+            return NoContent();
+
+        return Ok(await _foodService.GetPortionResourceHints(name, UserGuid, 5));
+    }
 }

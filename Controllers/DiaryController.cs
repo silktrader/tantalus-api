@@ -41,14 +41,16 @@ public class DiaryController : TantalusController {
         
         // gather all referenced foods and ascertain they are accessible by the user
         var foodsIds = portionRequests.Select(request => request.FoodId).ToImmutableHashSet();
-        var foods = await _foodService.GetFoods(foodsIds, userGuid);
+        var foods = (await _foodService.GetFoods(foodsIds, userGuid)).ToArray();
 
         // don't proceed with the insertion when even one food reference is missing
-        if (foods.Count() != foodsIds.Count)
-            return BadRequest();
+        if (foods.Length != foodsIds.Count)
+            return BadRequest("Missing foods references.");
 
-        await _diaryService.AddPortions(portionRequests, date, userGuid);
-        return Ok(); // tk created at
+        return Ok( new {
+            foods,
+            portions = await _diaryService.AddPortions(portionRequests, date, userGuid)
+        });
     }
 
     [HttpPut("{date}/portions/{id:guid}")]

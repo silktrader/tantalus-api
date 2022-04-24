@@ -52,7 +52,7 @@ public class DiaryService : IDiaryService {
         return await connection.ExecuteAsync(query, new { date, userId }) == 1;
     }
 
-    public async Task<int> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly dateOnly, Guid userId) {
+    public async Task<IEnumerable<Portion>> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly dateOnly, Guid userId) {
         var date = dateOnly.ToDateTime(TimeOnly.MinValue);
         var portions = portionRequests.Select(request => new {
             request.Id,
@@ -62,9 +62,9 @@ public class DiaryService : IDiaryService {
             date,
             userId
         });
-        const string query = "INSERT INTO portions (id, food_id, quantity, meal, date, user_id) VALUES (@Id, @FoodId, @Quantity, @Meal, @date, @userId)";
+        const string query = "INSERT INTO portions (id, food_id, quantity, meal, date, user_id) VALUES (@Id, @FoodId, @Quantity, @Meal, @date, @userId) RETURNING *";
         await using var connection = DbConnection;
-        return await connection.ExecuteAsync(query, portions);
+        return await connection.QueryAsync<Portion>(query, portions);
     }
 
     public async Task<Portion?> GetPortion(Guid portionId) {
@@ -84,7 +84,7 @@ public class DiaryService : IDiaryService {
 
 public interface IDiaryService {
     Task<bool> CreateDailyEntry(DateOnly date, Guid userId);
-    Task<int> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly date, Guid userId);
+    Task<IEnumerable<Portion>> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly date, Guid userId);
     Task<DiaryEntryResponse?> GetDiary(DateOnly date, Guid userId);
     Task<Portion?> GetPortion(Guid portionId);
     Task UpdatePortion(Portion portion, PortionRequest portionRequest);
