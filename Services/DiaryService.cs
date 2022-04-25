@@ -51,20 +51,23 @@ public class DiaryService : IDiaryService {
         await using var connection = DbConnection;
         return await connection.ExecuteAsync(query, new { date, userId }) == 1;
     }
-
+    
     public async Task<IEnumerable<Portion>> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly dateOnly, Guid userId) {
-        var date = dateOnly.ToDateTime(TimeOnly.MinValue);
-        var portions = portionRequests.Select(request => new {
-            request.Id,
-            request.FoodId,
-            request.Quantity,
-            request.Meal,
-            date,
-            userId
-        });
-        const string query = "INSERT INTO portions (id, food_id, quantity, meal, date, user_id) VALUES (@Id, @FoodId, @Quantity, @Meal, @date, @userId) RETURNING *";
-        await using var connection = DbConnection;
-        return await connection.QueryAsync<Portion>(query, portions);
+        var portions = portionRequests.Select(request => new Portion {
+            Id = request.Id,
+            FoodId = request.FoodId,
+            Quantity = request.Quantity,
+            Meal = request.Meal,
+            Date = dateOnly.ToDateTime(TimeOnly.MinValue),
+            UserId = userId
+        }).ToList();
+        
+        // EF tracked inserts are more efficient than manual inserts and allow safe and easy enum mapping, example:
+        // "INSERT INTO portions (id, food_id, quantity, meal, date, user_id) VALUES (@Id, @FoodId, @Quantity, @Meal, @date, @userId) RETURNING *";
+
+        await _dataContext.AddRangeAsync(portions);
+        await _dataContext.SaveChangesAsync();
+        return portions;
     }
 
     public async Task<Portion?> GetPortion(Guid portionId) {

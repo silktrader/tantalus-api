@@ -18,8 +18,8 @@ public interface IFoodService {
     Task<Food> UpdateFood(FoodUpdateRequest foodRequest, Food food);
     Task<bool> Delete(Guid foodId, Guid userId);
     Task<(IEnumerable<Food> foods, int count)> GetFoods(GetFoodsParameters parameters, Guid userId);
-    Task<IEnumerable<Food>> GetFoods(IEnumerable<Guid> foodIds, Guid userId);
-    Task<IEnumerable<FoodsController.PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit);
+    Task<IEnumerable<Food>> GetFoods(IList<Guid> foodIds, Guid userId);
+    Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit);
 }
 
 public class FoodService : IFoodService {
@@ -102,9 +102,9 @@ public class FoodService : IFoodService {
         return (foods, count);
     }
     
-    public async Task<IEnumerable<Food>> GetFoods(IEnumerable<Guid> foodIds, Guid userId) {
-        const string query = "SELECT * FROM foods WHERE id IN @foodIds and (user_id = @userId OR visibility in ('shared', 'editable'))";
-        // id = ANY(@foodIds) is an alternative
+    public async Task<IEnumerable<Food>> GetFoods(IList<Guid> foodIds, Guid userId) {
+        // Dapper won't allow the `IN` operator to work on array parameters, hence the resort to `ANY` 
+        const string query = "SELECT * FROM foods WHERE id = ANY(@foodIds) and (user_id = @userId OR visibility in ('shared', 'editable'))";
         await using var connection = DbConnection;
         return await connection.QueryAsync<Food>(query, new { foodIds, userId });
     }
@@ -121,12 +121,13 @@ public class FoodService : IFoodService {
         return await connection.QueryFirstAsync<bool>(query, new { shortUrl });
     }
     
-    public async Task<IEnumerable<FoodsController.PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit) {
+    public async Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit) {
         var pattern = $"%{name}%";
+        // tk look into literal replacement
         const string query = 
             "SELECT id, name, 1 as \"Priority\" FROM foods WHERE name ILIKE @pattern AND (user_id = @userId OR visibility in ('shared', 'editable')) LIMIT @limit";
         await using var connection = DbConnection;
-        return await connection.QueryAsync<FoodsController.PortionResourceResponse>(query, new { pattern, userId, limit });
+        return await connection.QueryAsync<PortionResourceResponse>(query, new { pattern, userId, limit });
     }
 
     private static string ShortenUrl(string url) {

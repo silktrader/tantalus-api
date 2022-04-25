@@ -22,7 +22,7 @@ public class DiaryController : TantalusController {
         _foodService = foodService;
     }
 
-    [HttpGet("{date:datetime}")]
+    [HttpGet("{date}")]
     public async Task<ActionResult<DiaryEntryResponse>> GetDiary(DateOnly date) {
         var userGuid = UserGuid;
         // nasty conversion until JSON parsing of the new DateOnly gets better in .NET
@@ -39,12 +39,12 @@ public class DiaryController : TantalusController {
         // create a daily entry when it's missing to meet the foreign key constraints
         await _diaryService.CreateDailyEntry(date, userGuid);
         
-        // gather all referenced foods and ascertain they are accessible by the user
-        var foodsIds = portionRequests.Select(request => request.FoodId).ToImmutableHashSet();
+        // gather all referenced foods and ascertain they are accessible by the user; can't use hashsets
+        var foodsIds = portionRequests.Select(request => request.FoodId).Distinct().ToArray();
         var foods = (await _foodService.GetFoods(foodsIds, userGuid)).ToArray();
 
         // don't proceed with the insertion when even one food reference is missing
-        if (foods.Length != foodsIds.Count)
+        if (foods.Length != foodsIds.Length)
             return BadRequest("Missing foods references.");
 
         return Ok( new {

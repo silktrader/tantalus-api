@@ -4,7 +4,7 @@ public class Portion {
     public Guid Id { get; init; }
     public Guid FoodId { get; init; }
     public Guid UserId { get; init; }
-    public DateTime Date { get; private set; }
+    public DateTime Date { get; init; }
     public int Quantity { get; set; }
     public Meal Meal { get; set; }
 

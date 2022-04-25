@@ -48,8 +48,6 @@ public partial class FoodsController : TantalusController {
         return Ok(_mapper.Map<FoodResponse>(food));
     }
 
-    public record PortionResourceResponse(Guid Id, string Name, int Priority, bool? IsRecipe);
-    
     public async Task<ActionResult> GetFoods([FromQuery] GetFoodsParameters parameters) {
         var (foodsData, count) = await _foodService.GetFoods(parameters, UserGuid);
         var foods = _mapper.Map<FoodResponse[]>(foodsData);
