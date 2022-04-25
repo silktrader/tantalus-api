@@ -6,7 +6,7 @@ using Tantalus.Data;
 using Tantalus.Entities;
 using Tantalus.Models;
 
-namespace Tantalus.Services; 
+namespace Tantalus.Services;
 
 public class DiaryService : IDiaryService {
     private readonly string _connectionString;
@@ -19,13 +19,13 @@ public class DiaryService : IDiaryService {
         _mapper = mapper;
         _connectionString = configuration.GetConnectionString("Database") ?? throw new InvalidOperationException();
     }
-    
+
     public async Task<DiaryEntryResponse?> GetDiary(DateOnly dateOnly, Guid userId) {
         var date = dateOnly.ToDateTime(TimeOnly.MinValue);
         const string diaryEntryQuery = "SELECT comment FROM diary_entries WHERE date=@date AND user_id=@userId";
         const string portionsQuery = "SELECT * FROM portions WHERE date=@date AND user_id=@userId";
         await using var connection = DbConnection;
-        
+
         // check whether a diary entry exists, which guarantees that portions were recorded for the relevant date
         var diaryEntry = await connection.QueryFirstOrDefaultAsync<DiaryEntry>(diaryEntryQuery, new { date, userId });
         if (diaryEntry == null)
@@ -33,7 +33,7 @@ public class DiaryService : IDiaryService {
 
         var portions = await connection.QueryAsync<Portion>(portionsQuery, new { date, userId });
         var foodsIds = portions.Select(portion => portion.FoodId).Distinct().ToArray();
-        
+
         const string foodsQuery = "SELECT * FROM foods where id = ANY(@foodsIds)";
         // for some reason `id IN @foodsIds` doesn't work
         // an alternative query to the the one above, while removing the portions iteration, would be:
@@ -51,8 +51,9 @@ public class DiaryService : IDiaryService {
         await using var connection = DbConnection;
         return await connection.ExecuteAsync(query, new { date, userId }) == 1;
     }
-    
-    public async Task<IEnumerable<Portion>> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly dateOnly, Guid userId) {
+
+    public async Task<IEnumerable<Portion>> AddPortions(IEnumerable<PortionRequest> portionRequests, DateOnly dateOnly,
+        Guid userId) {
         var portions = portionRequests.Select(request => new Portion {
             Id = request.Id,
             FoodId = request.FoodId,
@@ -61,7 +62,7 @@ public class DiaryService : IDiaryService {
             Date = dateOnly.ToDateTime(TimeOnly.MinValue),
             UserId = userId
         }).ToList();
-        
+
         // EF tracked inserts are more efficient than manual inserts and allow safe and easy enum mapping, example:
         // "INSERT INTO portions (id, food_id, quantity, meal, date, user_id) VALUES (@Id, @FoodId, @Quantity, @Meal, @date, @userId) RETURNING *";
 
@@ -83,6 +84,23 @@ public class DiaryService : IDiaryService {
         _dataContext.Entry(portion).State = EntityState.Modified;
         await _dataContext.SaveChangesAsync();
     }
+
+    public async Task<int> DeletePortions(Guid userId, IList<Guid> portionIds) {
+        const string query = "DELETE FROM portions WHERE id = ANY(@portionIds) AND user_id = @userId";
+        await using var connection = DbConnection;
+        await connection.OpenAsync();
+        // wrap deletes in one transaction, when one resource isn't found the whole operation set is ignored
+        await using var transaction = await connection.BeginTransactionAsync();
+        var deleted = await connection.ExecuteAsync(query, new { portionIds, userId }, transaction: transaction);
+        if (deleted == portionIds.Count)
+            await transaction.CommitAsync();
+        else {
+            await transaction.RollbackAsync();
+            deleted = 0;
+        }
+
+        return deleted;
+    }
 }
 
 public interface IDiaryService {
@@ -91,5 +109,5 @@ public interface IDiaryService {
     Task<DiaryEntryResponse?> GetDiary(DateOnly date, Guid userId);
     Task<Portion?> GetPortion(Guid portionId);
     Task UpdatePortion(Portion portion, PortionRequest portionRequest);
+    Task<int> DeletePortions(Guid userId, IList<Guid> portionIds);
 }
-

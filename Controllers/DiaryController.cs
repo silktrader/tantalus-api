@@ -71,4 +71,13 @@ public class DiaryController : TantalusController {
         await _diaryService.UpdatePortion(portion, portionRequest);
         return NoContent();
     }
+    
+    [HttpDelete("{date}/portions")]
+    public async Task<ActionResult> RemovePortions(DateOnly date, [FromQuery] Guid[] ids) {
+        var deletedRows = await _diaryService.DeletePortions(UserGuid, ids);
+        if (deletedRows > 0)
+            return Ok();
+        
+        return BadRequest();
+    }
 }
