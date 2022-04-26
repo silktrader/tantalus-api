@@ -25,5 +25,32 @@ public enum FoodAttribute {
     Calories,
     FatsPercentage,
     ProteinsPercentage,
-    CarbsPercentage
+    CarbsPercentage,
+    DetailsPercentage
+}
+
+public static class FoodAttributes {
+
+    // not the prettiest
+    public static string Nullable =
+        string.Join(", ", new[] {
+            FoodAttribute.Fibres,
+            FoodAttribute.Sugar,
+            FoodAttribute.Starch,
+            FoodAttribute.Saturated,
+            FoodAttribute.Monounsaturated,
+            FoodAttribute.Polyunsaturated,
+            FoodAttribute.Trans,
+            FoodAttribute.Cholesterol,
+            FoodAttribute.Omega3,
+            FoodAttribute.Omega6,
+            FoodAttribute.Sodium,
+            FoodAttribute.Potassium,
+            FoodAttribute.Magnesium,
+            FoodAttribute.Calcium,
+            FoodAttribute.Zinc,
+            FoodAttribute.Iron,
+            FoodAttribute.Alcohol 
+        }.Select(attribute => attribute.ToString().ToLower()));
+
 }

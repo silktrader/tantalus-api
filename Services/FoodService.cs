@@ -86,6 +86,7 @@ public class FoodService : IFoodService {
             FoodAttribute.FatsPercentage => "fats * 9 / Greatest(calories(foods), 0.01)",
             FoodAttribute.ProteinsPercentage => "proteins * 4 / Greatest(calories(foods), 0.01)",
             FoodAttribute.CarbsPercentage => "carbs * 4 / Greatest(calories(foods), 0.01)",
+            FoodAttribute.DetailsPercentage => $@"num_nulls({FoodAttributes.Nullable})",
             _ => null
         };
 
