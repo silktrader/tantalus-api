@@ -32,6 +32,11 @@ public class DiaryController : TantalusController {
         return Ok(diary);
     }
     
+    [HttpDelete("{date}")]
+    public async Task<ActionResult> DeleteDiary(DateOnly date) {
+        return await _diaryService.DeleteDiary(date, UserGuid) == 1 ? Ok() : BadRequest();
+    }
+    
     [HttpPost("{date}/portions")]
     public async Task<IActionResult> AddPortions([FromBody] PortionRequest[] portionRequests, [FromRoute] DateOnly date) {
 

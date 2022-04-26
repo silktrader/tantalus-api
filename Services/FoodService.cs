@@ -54,9 +54,10 @@ public class FoodService : IFoodService {
     }
 
     public async Task<Food?> GetFood(string shortUrl) {
+        // delegates the user check to the controller
         const string query = "SELECT * FROM foods WHERE short_url=@shortUrl";
-        await using var connection = new NpgsqlConnection(_connectionString);
-        return (await connection.QueryAsync<Food>(query, new { shortUrl })).FirstOrDefault();
+        await using var connection = DbConnection;
+        return await connection.QueryFirstOrDefaultAsync<Food>(query, new { shortUrl });
     }
 
     public async Task<Food?> GetFood(Guid foodId) {
@@ -74,7 +75,7 @@ public class FoodService : IFoodService {
 
     public async Task<(IEnumerable<Food> foods, int count)> GetFoods(GetFoodsParameters parameters, Guid userId) {
         // could `SELECT *, count(*) OVER() AS foods_count`, but it requires normalisation and inevitable memory allocations
-        const string query = "SELECT COUNT(*) FROM foods WHERE user_id = @userId or visibility in ('shared', 'editable')";
+        const string query = "SELECT COUNT(*) FROM user_foods(@userId)";
         
         // filtering is optional and case insensitive
         var nameFilter = parameters.NameFilter == null ? string.Empty : $"AND name ILIKE '%{parameters.NameFilter}%'";
@@ -88,23 +89,23 @@ public class FoodService : IFoodService {
             _ => null
         };
 
-        var filter = $@"SELECT * FROM foods 
-         WHERE (user_id = @userId or visibility in ('shared', 'editable')) {nameFilter} 
-         ORDER BY {calculatedProperty ?? parameters.SortProperty.ToString()} {(parameters.Ascending ? "asc" : "desc")} 
-         FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
+        var filter = $@"
+            SELECT * FROM user_foods(@userId) {nameFilter} 
+            ORDER BY {calculatedProperty ?? parameters.SortProperty.ToString()} {(parameters.Ascending ? "asc" : "desc")} 
+            FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
         
         await using var connection = DbConnection;
         var foods = await connection.QueryAsync<Food>(filter, new { 
             userId,
             pageSize = parameters.PageSize,
             offset = parameters.PageIndex * parameters.PageSize });
-        var count = await connection.ExecuteScalarAsync<int>(query,new {userId});        // returns the first column of the first row
+        var count = await connection.ExecuteScalarAsync<int>(query, new {userId});        // returns the first column of the first row
         return (foods, count);
     }
     
     public async Task<IEnumerable<Food>> GetFoods(IList<Guid> foodIds, Guid userId) {
         // Dapper won't allow the `IN` operator to work on array parameters, hence the resort to `ANY` 
-        const string query = "SELECT * FROM foods WHERE id = ANY(@foodIds) and (user_id = @userId OR visibility in ('shared', 'editable'))";
+        const string query = "SELECT * FROM user_foods(@userId) WHERE id = ANY(@foodIds)";
         await using var connection = DbConnection;
         return await connection.QueryAsync<Food>(query, new { foodIds, userId });
     }
@@ -116,6 +117,7 @@ public class FoodService : IFoodService {
     }
 
     private async Task<bool> Exists(string shortUrl) {
+        // given the unique constraint on shortUrl a `SELECT TRUE FROM foods` would suffice
         const string query = "SELECT EXISTS (SELECT 1 FROM foods WHERE short_url=@shortUrl)";
         await using var connection = DbConnection;
         return await connection.QueryFirstAsync<bool>(query, new { shortUrl });
@@ -123,11 +125,15 @@ public class FoodService : IFoodService {
     
     public async Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit) {
         var pattern = $"%{name}%";
-        // tk look into literal replacement
-        const string query = 
-            "SELECT id, name, 1 as \"Priority\" FROM foods WHERE name ILIKE @pattern AND (user_id = @userId OR visibility in ('shared', 'editable')) LIMIT @limit";
+        var today = DateTime.Now;
+        var monthAgo = today.AddMonths(-1);
+        const string query = @"
+            SELECT id, name, (SELECT COUNT(*) FROM portions WHERE food_id = foods.id AND date <= @today AND date >= @monthAgo) as priority
+            FROM user_foods(@userId) AS foods WHERE name ILIKE @pattern 
+            ORDER BY priority DESC 
+            LIMIT @limit";
         await using var connection = DbConnection;
-        return await connection.QueryAsync<PortionResourceResponse>(query, new { pattern, userId, limit });
+        return await connection.QueryAsync<PortionResourceResponse>(query, new { pattern, userId, limit, today, monthAgo });
     }
 
     private static string ShortenUrl(string url) {

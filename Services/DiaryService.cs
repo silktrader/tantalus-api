@@ -45,6 +45,13 @@ public class DiaryService : IDiaryService {
         };
     }
 
+    public async Task<int> DeleteDiary(DateOnly dateOnly, Guid userId) {
+        var date = dateOnly.ToDateTime(TimeOnly.MinValue);
+        const string query = "DELETE FROM diary_entries WHERE date = @date AND user_id = @userId";
+        await using var connection = DbConnection;
+        return await connection.ExecuteAsync(query, new {date, userId });
+    }
+
     public async Task<bool> CreateDailyEntry(DateOnly dateOnly, Guid userId) {
         var date = dateOnly.ToDateTime(TimeOnly.MinValue);
         const string query = "INSERT INTO diary_entries (date, user_id) VALUES (@date, @userId) ON CONFLICT DO NOTHING";
@@ -110,4 +117,5 @@ public interface IDiaryService {
     Task<Portion?> GetPortion(Guid portionId);
     Task UpdatePortion(Portion portion, PortionRequest portionRequest);
     Task<int> DeletePortions(Guid userId, IList<Guid> portionIds);
+    Task<int> DeleteDiary(DateOnly dateOnly, Guid userId);
 }
