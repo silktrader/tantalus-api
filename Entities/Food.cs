@@ -45,10 +45,6 @@ public class Food {
     public VisibleState Visibility { get; set; }
 
     public DateTime Created { get; }
-    
-    public enum VisibleState {
-        Private,
-        Shared,
-        Editable
-    }
+
+    public List<RecipeIngredient> Ingredients = new();
 }

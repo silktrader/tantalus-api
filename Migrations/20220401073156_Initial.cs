@@ -61,7 +61,7 @@ namespace Tantalus.Migrations
                     source = table.Column<string>(type: "text", nullable: true),
                     notes = table.Column<string>(type: "text", nullable: true),
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    visibility = table.Column<Food.VisibleState>(type: "visible_state", nullable: false, defaultValue: Food.VisibleState.Private),
+                    visibility = table.Column<VisibleState>(type: "visible_state", nullable: false, defaultValue: VisibleState.Private),
                     created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>

@@ -168,10 +168,10 @@ namespace Tantalus.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
-                    b.Property<Food.VisibleState>("Visibility")
+                    b.Property<VisibleState>("Visibility")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("visible_state")
-                        .HasDefaultValue(Food.VisibleState.Private)
+                        .HasDefaultValue(VisibleState.Private)
                         .HasColumnName("visibility");
 
                     b.Property<float?>("Zinc")

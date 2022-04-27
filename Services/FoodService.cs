@@ -78,7 +78,7 @@ public class FoodService : IFoodService {
         const string query = "SELECT COUNT(*) FROM user_foods(@userId)";
         
         // filtering is optional and case insensitive
-        var nameFilter = parameters.NameFilter == null ? string.Empty : $"AND name ILIKE '%{parameters.NameFilter}%'";
+        var nameFilter = parameters.NameFilter == null ? string.Empty : $"WHERE name ILIKE '%{parameters.NameFilter}%'";
         
         // handle special cases when ordering is based on calculated row properties
         var calculatedProperty = parameters.SortProperty switch {
@@ -87,7 +87,7 @@ public class FoodService : IFoodService {
             FoodAttribute.ProteinsPercentage => "proteins * 4 / Greatest(calories(foods), 0.01)",
             FoodAttribute.CarbsPercentage => "carbs * 4 / Greatest(calories(foods), 0.01)",
             FoodAttribute.DetailsPercentage => $@"num_nulls({FoodAttributes.Nullable})",
-            _ => null
+            _ => null                    
         };
 
         var filter = $@"

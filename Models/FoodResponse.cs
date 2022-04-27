@@ -1,4 +1,6 @@
-﻿namespace Tantalus.Models; 
+﻿using Tantalus.Entities;
+
+namespace Tantalus.Models; 
 
 public record FoodResponse {
     public Guid Id { get; set; }
@@ -37,6 +39,6 @@ public record FoodResponse {
     public string? Source { get; set; }
     public string? Notes { get; set; }
 
-    public Entities.Food.VisibleState Visibility { get; set; }
+    public VisibleState Visibility { get; set; }
     public DateTime Created { get; set; }
 }

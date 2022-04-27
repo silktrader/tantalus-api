@@ -9,7 +9,7 @@ public class DataContext : DbContext {
 
     static DataContext() {
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RefreshToken.RevocationReason>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<Food.VisibleState>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<VisibleState>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<Meal>();
     }
 
@@ -22,6 +22,8 @@ public class DataContext : DbContext {
     public DbSet<Food> Foods { get; set; } = null!;
     public DbSet<DiaryEntry> DiaryEntries { get; set; } = null!;
     public DbSet<Portion> Portions { get; set; } = null!;
+    public DbSet<Recipe> Recipes { get; set; } = null!;
+    public DbSet<RecipeIngredient> RecipeIngredients { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
         optionsBuilder.UseNpgsql(
@@ -31,7 +33,7 @@ public class DataContext : DbContext {
 
     protected override void OnModelCreating(ModelBuilder builder) {
         builder.HasPostgresEnum<RefreshToken.RevocationReason>();
-        builder.HasPostgresEnum<Food.VisibleState>();
+        builder.HasPostgresEnum<VisibleState>();
 
         builder.Entity<User>(entity => {
             entity.Property(user => user.Name)
@@ -114,7 +116,7 @@ public class DataContext : DbContext {
 
             entity.Property(food => food.Created).IsRequired().HasDefaultValueSql("NOW()");
 
-            entity.Property(food => food.Visibility).IsRequired().HasDefaultValue(Food.VisibleState.Private);
+            entity.Property(food => food.Visibility).IsRequired().HasDefaultValue(VisibleState.Private);
 
             entity.HasOne(food => food.User)
                 .WithMany(user => user.Foods)
@@ -140,6 +142,28 @@ public class DataContext : DbContext {
             entity.HasKey(entry => new { entry.Date, entry.UserId });
             entity.Property(entry => entry.Date).IsRequired().HasColumnType("date");
             entity.Property(entry => entry.UserId).IsRequired();
+        });
+
+        builder.Entity<Recipe>(entity => {
+            entity.Property(recipe => recipe.UserId).IsRequired();
+            entity.Property(recipe => recipe.Name).HasMaxLength(50).IsRequired();
+            entity.Property(recipe => recipe.Created).IsRequired().HasColumnType("Date");
+            entity.Property(recipe => recipe.Access).IsRequired().HasDefaultValue(VisibleState.Private);
+            entity.HasOne(recipe => recipe.User)
+                .WithMany(user => user.Recipes)
+                .HasForeignKey(recipe => recipe.UserId)
+                .OnDelete(DeleteBehavior.SetNull);          // remember to retrieve orphans on user deletion tk
+        });
+        
+        builder.Entity<RecipeIngredient>(entity => {
+            entity.Property(ingredient => ingredient.Quantity).IsRequired();
+            entity.HasKey(ingredient => new { ingredient.RecipeId, ingredient.FoodId });
+            entity.HasOne(ingredient => ingredient.Recipe)
+                .WithMany(recipe => recipe.Ingredients)
+                .HasForeignKey(ingredient => ingredient.RecipeId);
+            entity.HasOne(ingredient => ingredient.Food)
+                .WithMany(food => food.Ingredients)
+                .HasForeignKey(ingredient => ingredient.FoodId);
         });
     }
 }

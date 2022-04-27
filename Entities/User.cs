@@ -21,4 +21,5 @@ public class User {
 
     public List<RefreshToken> RefreshTokens { get; set; } = new();
     public List<Food> Foods { get; set; } = new();
+    public List<Recipe> Recipes { get; set; } = new();
 }
