@@ -39,11 +39,11 @@ public abstract record FoodRequest {
 
 public sealed record FoodAddRequest : FoodRequest {
     [Required] public string Name { get; init; }
-    [Required] public VisibleState Visibility { get; init; }
+    [Required] public Access Access { get; init; }
 }
 
 public sealed record FoodUpdateRequest : FoodRequest {
     [Required] public Guid Id { get; init; }
     public string? Name { get; init; }
-    public VisibleState? Visibility { get; init; }
+    public Access? Access { get; init; }
 }

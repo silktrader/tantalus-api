@@ -33,7 +33,7 @@ public partial class FoodsController : TantalusController {
         if (food == null)
             return NotFound();
 
-        if (food.UserId != UserGuid && food.Visibility == VisibleState.Private)
+        if (food.UserId != UserGuid && food.Access == Access.Private)
             return BadRequest();
 
         await _foodService.UpdateFood(foodRequest, food);

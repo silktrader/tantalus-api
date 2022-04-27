@@ -9,7 +9,7 @@ public class DataContext : DbContext {
 
     static DataContext() {
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RefreshToken.RevocationReason>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<VisibleState>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<Access>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<Meal>();
     }
 
@@ -33,7 +33,7 @@ public class DataContext : DbContext {
 
     protected override void OnModelCreating(ModelBuilder builder) {
         builder.HasPostgresEnum<RefreshToken.RevocationReason>();
-        builder.HasPostgresEnum<VisibleState>();
+        builder.HasPostgresEnum<Access>();
 
         builder.Entity<User>(entity => {
             entity.Property(user => user.Name)
@@ -116,7 +116,7 @@ public class DataContext : DbContext {
 
             entity.Property(food => food.Created).IsRequired().HasDefaultValueSql("NOW()");
 
-            entity.Property(food => food.Visibility).IsRequired().HasDefaultValue(VisibleState.Private);
+            entity.Property(food => food.Access).IsRequired().HasDefaultValue(Access.Private);
 
             entity.HasOne(food => food.User)
                 .WithMany(user => user.Foods)
@@ -148,7 +148,7 @@ public class DataContext : DbContext {
             entity.Property(recipe => recipe.UserId).IsRequired();
             entity.Property(recipe => recipe.Name).HasMaxLength(50).IsRequired();
             entity.Property(recipe => recipe.Created).IsRequired().HasColumnType("Date");
-            entity.Property(recipe => recipe.Access).IsRequired().HasDefaultValue(VisibleState.Private);
+            entity.Property(recipe => recipe.Access).IsRequired().HasDefaultValue(Access.Private);
             entity.HasOne(recipe => recipe.User)
                 .WithMany(user => user.Recipes)
                 .HasForeignKey(recipe => recipe.UserId)

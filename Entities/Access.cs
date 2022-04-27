@@ -1,6 +1,6 @@
 ﻿namespace Tantalus.Entities;
 
-public enum VisibleState {
+public enum Access {
     Private,
     Shared,
     Editable

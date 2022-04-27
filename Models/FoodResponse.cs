@@ -39,6 +39,6 @@ public record FoodResponse {
     public string? Source { get; set; }
     public string? Notes { get; set; }
 
-    public VisibleState Visibility { get; set; }
+    public Access Access { get; set; }
     public DateTime Created { get; set; }
 }

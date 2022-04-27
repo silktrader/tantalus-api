@@ -5,7 +5,7 @@
         public Guid UserId { get; init; }
         public string Name { get; set; }
         public string? Notes { get; set; }
-        public VisibleState Access { get; set; }
+        public Access Access { get; set; }
         public DateTime Created { get; init; }
 
         public User User { get; set; }

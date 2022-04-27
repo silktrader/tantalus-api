@@ -42,7 +42,7 @@ public class Food {
 
     public Guid UserId { get; set; }
     public User User { get; }
-    public VisibleState Visibility { get; set; }
+    public Access Access { get; set; }
 
     public DateTime Created { get; }
 

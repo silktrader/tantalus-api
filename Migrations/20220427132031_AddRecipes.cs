@@ -18,7 +18,7 @@ namespace Tantalus.Migrations
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     notes = table.Column<string>(type: "text", nullable: true),
-                    access = table.Column<VisibleState>(type: "visible_state", nullable: false, defaultValue: VisibleState.Private),
+                    access = table.Column<Access>(type: "visible_state", nullable: false, defaultValue: Access.Private),
                     created = table.Column<DateTime>(type: "Date", nullable: false)
                 },
                 constraints: table =>
