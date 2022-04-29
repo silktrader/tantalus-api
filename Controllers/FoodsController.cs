@@ -11,7 +11,7 @@ namespace Controllers;
 [Route("api/[controller]")]
 [Authorize]
 [ApiController]
-public partial class FoodsController : TantalusController {
+public class FoodsController : TantalusController {
 
     private readonly IFoodService _foodService;
     private readonly IMapper _mapper;
@@ -48,6 +48,7 @@ public partial class FoodsController : TantalusController {
         return Ok(_mapper.Map<FoodResponse>(food));
     }
 
+    [HttpGet]
     public async Task<ActionResult> GetFoods([FromQuery] GetFoodsParameters parameters) {
         var (foodsData, count) = await _foodService.GetFoods(parameters, UserGuid);
         var foods = _mapper.Map<FoodResponse[]>(foodsData);
@@ -58,12 +59,12 @@ public partial class FoodsController : TantalusController {
     public async Task<ActionResult<FoodResponse>> DeleteFood(Guid foodId) {
         return await _foodService.Delete(foodId, UserGuid) ? NoContent() : BadRequest();
     }
-    
-    [HttpGet("filter")]
-    public async Task<ActionResult<IEnumerable<PortionResourceResponse>>> GetFilteredFoods(string name) {
-        if (string.IsNullOrEmpty(name))
+
+    [HttpGet("names")]
+    public async Task<ActionResult<IEnumerable<PortionResourceResponse>>> GetNames(string filter) {
+        if (string.IsNullOrEmpty(filter))
             return NoContent();
 
-        return Ok(await _foodService.GetPortionResourceHints(name, UserGuid, 5));
+        return Ok(await _foodService.GetPortionResourceHints(filter, UserGuid, 5));
     }
 }

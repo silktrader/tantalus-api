@@ -44,6 +44,7 @@ services.AddAuthorization();
 services.AddScoped<IUserService, UserService>();
 services.AddScoped<IFoodService, FoodService>();
 services.AddScoped<IDiaryService, DiaryService>();
+services.AddScoped<IRecipeService, RecipeService>();
 
 var app = builder.Build();
 

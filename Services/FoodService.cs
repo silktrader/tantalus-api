@@ -73,6 +73,7 @@ public class FoodService : IFoodService {
         return food;
     }
 
+    /// <summary> Fetch foods details, inclusive of nutrients quantities, on the basis of search parameters.</summary>
     public async Task<(IEnumerable<Food> foods, int count)> GetFoods(GetFoodsParameters parameters, Guid userId) {
         // could `SELECT *, count(*) OVER() AS foods_count`, but it requires normalisation and inevitable memory allocations
         const string query = "SELECT COUNT(*) FROM user_foods(@userId)";
