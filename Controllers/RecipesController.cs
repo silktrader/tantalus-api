@@ -37,13 +37,24 @@ public class RecipesController : TantalusController {
     
     [HttpPost]
     public async Task<ActionResult> AddRecipe(RecipePostRequest recipe) {
-
         var userGuid = UserGuid;
         if (await _recipeService.Exists(recipe.Name, userGuid))
             return BadRequest(new { message = "A recipe with the same name already exists" });
 
         // internal errors are handled with adequate HTTP responses
         await _recipeService.CreateRecipe(recipe, userGuid);
+        return Ok();
+    }
+    
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult> EditRecipe(Guid id, RecipePostRequest request) {
+        var userId = UserGuid;
+        var recipe = await _recipeService.TrackRecipe(id, userId);
+        
+        if (recipe == null)
+            return NotFound();
+
+        await _recipeService.UpdateRecipe(recipe, request);
         return Ok();
     }
 }

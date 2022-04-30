@@ -1,6 +1,8 @@
-﻿using System.Data.Common;
+﻿using System.Collections.Immutable;
+using System.Data.Common;
 using AutoMapper;
 using Dapper;
+using Microsoft.EntityFrameworkCore;
 using Models;
 using Npgsql;
 using Tantalus.Data;
@@ -14,6 +16,13 @@ public interface IRecipeService {
     Task<bool> Exists(string name, Guid userId);
     Task CreateRecipe(RecipePostRequest recipeRequest, Guid userId);
     Task<RecipeResponse?> GetRecipe(Guid id, Guid userId);
+
+    /// <summary>
+    /// Find a recipe and track it, for later EF manipulation, preferable to Dapper in case of updates.
+    /// </summary>
+    Task<Recipe?> TrackRecipe(Guid id, Guid userId);
+
+    Task UpdateRecipe(Recipe recipe, RecipePostRequest request);
 }
 
 public class RecipeService : IRecipeService {
@@ -112,6 +121,47 @@ public class RecipeService : IRecipeService {
                 RecipeId = recipeRequest.Id,
                 Quantity = response.Quantity
             }));
+
+        await _dataContext.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Find a recipe and track it, for later EF manipulation, preferable to Dapper in case of updates.
+    /// </summary>
+    public async Task<Recipe?> TrackRecipe(Guid id, Guid userId) {
+        return await _dataContext.Recipes.Include(recipe => recipe.Ingredients).FirstOrDefaultAsync(recipe => recipe.Id == id && recipe.UserId == userId);
+    }
+
+    public async Task UpdateRecipe(Recipe recipe, RecipePostRequest request) {
+        recipe.Name = request.Name;
+        // tk add notes, etc. later
+        
+        var removedIngredients = new List<RecipeIngredient>();
+        var newIngredients = request.Ingredients.ToDictionary(
+            keySelector: ingredient => ingredient.FoodId,
+            elementSelector: ingredient => ingredient);
+
+        // change ingredients quantities and signal those that will be removed
+        foreach (var ingredient in recipe.Ingredients) {
+            // check whether quantities where changed
+            if (newIngredients.TryGetValue(ingredient.FoodId, out var updatedIngredient)) {
+                ingredient.Quantity = updatedIngredient.Quantity;
+                newIngredients.Remove(ingredient.FoodId);
+            }
+
+            // the ingredient was removed during the edit
+            else removedIngredients.Add(ingredient);
+        }
+
+        // remove ingredients no longer present, defer removal to avoid up changing iterating list
+        _dataContext.RecipeIngredients.RemoveRange(removedIngredients);
+
+        // add new ingredients, whose quantities weren't processed in the previous loop
+        await _dataContext.RecipeIngredients.AddRangeAsync(newIngredients.Values.Select(ingredient => new RecipeIngredient {
+            FoodId = ingredient.FoodId,
+            RecipeId = recipe.Id,
+            Quantity = ingredient.Quantity
+        }));
 
         await _dataContext.SaveChangesAsync();
     }
