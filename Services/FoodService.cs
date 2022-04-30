@@ -20,6 +20,8 @@ public interface IFoodService {
     Task<(IEnumerable<Food> foods, int count)> GetFoods(GetFoodsParameters parameters, Guid userId);
     Task<IEnumerable<Food>> GetFoods(IList<Guid> foodIds, Guid userId);
     Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit);
+    Task<GetFoodStatsResponse> GetFoodStats(Guid foodId, Guid userId);
+    Task<bool> CanViewFood(Guid foodId, Guid userId);
 }
 
 public class FoodService : IFoodService {
@@ -64,6 +66,16 @@ public class FoodService : IFoodService {
         const string query = "SELECT * FROM foods WHERE id=@foodId";
         await using var connection = DbConnection;
         return await connection.QueryFirstOrDefaultAsync<Food>(query, new { foodId });
+    }
+
+    /// <summary>
+    /// Determines whether a user has access to a food, given its id. Checks whether the user created the food
+    /// or the latter's access is set to either 'shared', or 'editable', by way of a DB function check.
+    /// </summary>
+    public async Task<bool> CanViewFood(Guid foodId, Guid userId) {
+        const string query = "SELECT EXISTS (SELECT TRUE FROM user_foods(@userId) WHERE id=@foodId)";
+        await using var connection = DbConnection;
+        return await connection.ExecuteScalarAsync<bool>(query, new { foodId, userId });
     }
 
     public async Task<Food> UpdateFood(FoodUpdateRequest foodRequest, Food food) {
@@ -136,6 +148,35 @@ public class FoodService : IFoodService {
             LIMIT @limit";
         await using var connection = DbConnection;
         return await connection.QueryAsync<PortionResourceResponse>(query, new { pattern, userId, limit, today, monthAgo });
+    }
+
+    public async Task<GetFoodStatsResponse> GetFoodStats(Guid foodId, Guid userId) {
+
+        const string query = @"
+            SELECT id, name, short_url, Count(*) as frequency
+            FROM (
+                SELECT foods.id, foods.short_url, name, date
+                FROM   portions
+                JOIN   foods
+                ON     food_id = foods.id
+                WHERE  food_id != @foodId
+                AND    portions.user_id = @userId
+                AND    (date, meal) IN (
+                  SELECT date,
+                         meal
+                  FROM   foods
+                  JOIN   portions
+                  ON     foods.id=portions.food_id
+                  WHERE  foods.id = @foodId)) AS frequent_foods
+            GROUP BY (id, name, short_url)
+            ORDER BY frequency DESC
+            LIMIT    5";
+        await using var connection = DbConnection;
+        var frequentFoods = await connection.QueryAsync<FrequentFood>(query, new { foodId, userId });
+
+        return new GetFoodStatsResponse {
+            FrequentFoods = frequentFoods
+        };
     }
 
     private static string ShortenUrl(string url) {

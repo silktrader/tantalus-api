@@ -67,4 +67,10 @@ public class FoodsController : TantalusController {
 
         return Ok(await _foodService.GetPortionResourceHints(filter, UserGuid, 5));
     }
+
+    [HttpGet("{id:guid}/stats")]
+    public async Task<ActionResult<GetFoodStatsResponse>> GetFoodStats(Guid id) {
+        var userId = UserGuid;
+        return (await _foodService.CanViewFood(id, userId)) ? await _foodService.GetFoodStats(id, userId) : NotFound();
+    }
 }
