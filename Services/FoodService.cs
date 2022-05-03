@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text;
 using AutoMapper;
 using Controllers;
 using Dapper;
@@ -142,18 +143,26 @@ public class FoodService : IFoodService {
         var today = DateTime.Now;
         var monthAgo = today.AddMonths(-1);
         const string query = @"
-            SELECT id, name, (SELECT COUNT(*) FROM portions WHERE food_id = foods.id AND date <= @today AND date >= @monthAgo) as priority
-            FROM user_foods(@userId) AS foods WHERE name ILIKE @pattern 
-            ORDER BY priority DESC 
-            LIMIT @limit";
+            SELECT   id, name, (
+                SELECT Count(*)
+                FROM   portions
+                WHERE  food_id = foods.id
+                AND    date <= @today
+                AND    date >= @monthAgo) AS priority
+            FROM     user_foods(@userId) AS foods
+            WHERE    name ilike @pattern
+            ORDER BY priority DESC
+            LIMIT    @limit";
         await using var connection = DbConnection;
         return await connection.QueryAsync<PortionResourceResponse>(query, new { pattern, userId, limit, today, monthAgo });
     }
 
     public async Task<GetFoodStatsResponse> GetFoodStats(Guid foodId, Guid userId) {
 
-        const string query = @"
-            SELECT id, name, short_url, Count(*) as frequency
+        var parameters = new { foodId, userId };
+        // tk limit to certain date range
+        const string associatedFoodsQuery = @"
+            SELECT id, name, short_url, Count(*) AS frequency
             FROM (
                 SELECT foods.id, foods.short_url, name, date
                 FROM   portions
@@ -162,20 +171,56 @@ public class FoodService : IFoodService {
                 WHERE  food_id != @foodId
                 AND    portions.user_id = @userId
                 AND    (date, meal) IN (
-                  SELECT date,
-                         meal
+                  SELECT date, meal
                   FROM   foods
                   JOIN   portions
-                  ON     foods.id=portions.food_id
+                  ON     foods.id = portions.food_id
                   WHERE  foods.id = @foodId)) AS frequent_foods
             GROUP BY (id, name, short_url)
             ORDER BY frequency DESC
             LIMIT    5";
+
+        // the results could be included in other queries; this is more legible, maintainable
+        const string consumptionQuery = @"
+            SELECT Count(*)      AS count,
+                   Sum(quantity) AS quantity,
+                   Max(quantity) AS max,
+                   Max(date)     AS last_eaten
+            FROM   portions
+            WHERE  food_id = @foodId
+                   AND date BETWEEN '2022-04-01' AND Now();";
+
+        // use view tk!
+        const string frequentMealsQuery = @"
+            SELECT *
+            FROM   (SELECT Count(*) AS frequency,
+                           meal
+                    FROM   portions
+                    WHERE  food_id = @foodId
+                           AND date BETWEEN '2022-04-01' AND Now()
+                    GROUP  BY meal) AS frequent_meals
+            WHERE  frequency > 0
+            ORDER  BY frequency DESC
+            LIMIT  3;";
+
+        const string recipesQuery = @"
+            SELECT id, quantity, name
+            FROM   recipe_ingredients
+                   JOIN recipes
+                     ON recipe_id = id
+            WHERE  food_id = @foodId;";
+        
         await using var connection = DbConnection;
-        var frequentFoods = await connection.QueryAsync<FrequentFood>(query, new { foodId, userId });
+        var (count, quantity, max, lastEaten) = await connection.QueryFirstAsync<(int count, int quantity, int max, DateTime lastEaten)>(consumptionQuery, parameters);
 
         return new GetFoodStatsResponse {
-            FrequentFoods = frequentFoods
+            Count = count,
+            Quantity = quantity,
+            Max = max,
+            LastEaten = DateOnly.FromDateTime(lastEaten),
+            FrequentFoods = await connection.QueryAsync<FrequentFood>(associatedFoodsQuery, parameters),
+            FrequentMeals = await connection.QueryAsync<FrequentMeal>(frequentMealsQuery, parameters),
+            Recipes = await connection.QueryAsync<RecipeFoodStat>(recipesQuery, parameters)
         };
     }
 
