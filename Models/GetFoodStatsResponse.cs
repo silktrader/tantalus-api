@@ -6,7 +6,7 @@ public record GetFoodStatsResponse {
     public int Count { get; init; }
     public int Quantity { get; init; }
     public int Max { get; init; }
-    public DateOnly LastEaten { get; init; }
+    public DateOnly? LastEaten { get; init; }
     public IEnumerable<FrequentFood> FrequentFoods { get; init; }
     public IEnumerable<FrequentMeal> FrequentMeals { get; init; }
     public IEnumerable<RecipeFoodStat> Recipes { get; init; }

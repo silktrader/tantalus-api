@@ -217,7 +217,7 @@ public class FoodService : IFoodService {
             Count = count,
             Quantity = quantity,
             Max = max,
-            LastEaten = DateOnly.FromDateTime(lastEaten),
+            LastEaten = lastEaten == DateTime.MinValue ? null : DateOnly.FromDateTime(lastEaten),
             FrequentFoods = await connection.QueryAsync<FrequentFood>(associatedFoodsQuery, parameters),
             FrequentMeals = await connection.QueryAsync<FrequentMeal>(frequentMealsQuery, parameters),
             Recipes = await connection.QueryAsync<RecipeFoodStat>(recipesQuery, parameters)
