@@ -85,4 +85,18 @@ public class DiaryController : TantalusController {
         
         return BadRequest();
     }
+
+    [HttpPut("{date}/mood")]
+    public async Task<ActionResult> UpdateMood(DateOnly date, MoodPutRequest request) {
+        // create a daily entry when it's missing to meet the foreign key constraints
+        await _diaryService.UpdateMood(date, UserGuid, request.Mood);
+        return Ok();
+    }
+    
+    [HttpPut("{date}/fitness")]
+    public async Task<ActionResult> UpdateFitness(DateOnly date, FitnessPutRequest request) {
+        // create a daily entry when it's missing to meet the foreign key constraints
+        await _diaryService.UpdateFitness(date, UserGuid, request.Fitness);
+        return Ok();
+    }
 }

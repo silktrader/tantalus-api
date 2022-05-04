@@ -142,6 +142,8 @@ public class DataContext : DbContext {
             entity.HasKey(entry => new { entry.Date, entry.UserId });
             entity.Property(entry => entry.Date).IsRequired().HasColumnType("date");
             entity.Property(entry => entry.UserId).IsRequired();
+            entity.Property(entry => entry.Mood).IsRequired().HasDefaultValue(3);
+            entity.Property(entry => entry.Fitness).IsRequired().HasDefaultValue(3);
         });
 
         builder.Entity<Recipe>(entity => {

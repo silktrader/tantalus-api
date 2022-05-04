@@ -22,7 +22,7 @@ public class DiaryService : IDiaryService {
 
     public async Task<DiaryEntryResponse?> GetDiary(DateOnly dateOnly, Guid userId) {
         var date = dateOnly.ToDateTime(TimeOnly.MinValue);
-        const string diaryEntryQuery = "SELECT comment FROM diary_entries WHERE date=@date AND user_id=@userId";
+        const string diaryEntryQuery = "SELECT comment, mood, fitness FROM diary_entries WHERE date=@date AND user_id=@userId";
         const string portionsQuery = "SELECT * FROM portions WHERE date=@date AND user_id=@userId";
         await using var connection = DbConnection;
 
@@ -40,6 +40,8 @@ public class DiaryService : IDiaryService {
         // const string foodsQuery = "SELECT foods.* FROM foods JOIN portions ON foods.id = portions.food_id WHERE portions.date=@date";
         return new DiaryEntryResponse {
             Comment = diaryEntry.Comment,
+            Mood = diaryEntry.Mood,
+            Fitness = diaryEntry.Fitness,
             Portions = _mapper.Map<PortionResponse[]>(portions),
             Foods = _mapper.Map<FoodResponse[]>(await connection.QueryAsync<Food>(foodsQuery, new { foodsIds }))
         };
@@ -108,6 +110,30 @@ public class DiaryService : IDiaryService {
 
         return deleted;
     }
+
+    public async Task<bool> UpdateMood(DateOnly dateOnly, Guid userId, short mood) {
+        // MERGE is an option to UPSERT
+        var date = dateOnly.ToDateTime(TimeOnly.MinValue);
+        const string query = @"
+            INSERT INTO diary_entries (date, user_id, mood)
+            VALUES (@date, @userid, @mood)
+            ON CONFLICT (date, user_id)
+            DO UPDATE SET mood = @mood;";
+        await using var connection = DbConnection;
+        return await connection.ExecuteAsync(query, new { date, userId, mood }) == 1;
+    }
+    
+    public async Task<bool> UpdateFitness(DateOnly dateOnly, Guid userId, short fitness) {
+        // MERGE is an option to UPSERT
+        var date = dateOnly.ToDateTime(TimeOnly.MinValue);
+        const string query = @"
+            INSERT INTO diary_entries (date, user_id, fitness)
+            VALUES (@date, @userid, @fitness)
+            ON CONFLICT (date, user_id)
+            DO UPDATE SET fitness = @fitness;";
+        await using var connection = DbConnection;
+        return await connection.ExecuteAsync(query, new { date, userId, fitness }) == 1;
+    }
 }
 
 public interface IDiaryService {
@@ -118,4 +144,6 @@ public interface IDiaryService {
     Task UpdatePortion(Portion portion, PortionRequest portionRequest);
     Task<int> DeletePortions(Guid userId, IList<Guid> portionIds);
     Task<int> DeleteDiary(DateOnly dateOnly, Guid userId);
+    Task<bool> UpdateFitness(DateOnly dateOnly, Guid userId, short fitness);
+    Task<bool> UpdateMood(DateOnly dateOnly, Guid userId, short mood);
 }
