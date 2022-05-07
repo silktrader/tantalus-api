@@ -25,9 +25,12 @@ public class StatService : IStatService {
                               mood
                        FROM   portions
                               join diary_entries USING (date)
+                       WHERE  date BETWEEN @startDate AND @endDate
+                       AND    portions.user_id = @userId
+                       AND    diary_entries.user_id = @userId
                        GROUP  BY id, date, mood)
 
-              SELECT id, name, total, percent
+              SELECT id, name, short_url, total, percent
               FROM  (SELECT id, total, happy / total :: FLOAT AS percent
                      FROM   (SELECT id, Count(*) AS total
                                    FROM   foods_moods
@@ -42,7 +45,8 @@ public class StatService : IStatService {
                      LIMIT @records";
         await using var connection = DbConnection;
         return new HighMoodFoodsResponse {
-               Foods = await connection.QueryAsync<HighMoodFood>(query, new { userId, records = parameters.Records}) 
+               Foods = await connection.QueryAsync<HighMoodFood>(query, 
+                      new { userId, records = parameters.Records, startDate = parameters.StartDate, endDate = parameters.EndDate}) 
         };
 
     }
