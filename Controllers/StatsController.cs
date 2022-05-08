@@ -17,8 +17,18 @@ public class StatsController : TantalusController {
     }
 
     [HttpGet("mood/high-mood-foods")]
-    public async Task<ActionResult<HighMoodFoodsResponse>> GetHighMoodFoods([FromQuery] GetStatsParameters parameters) {
-        return Ok(await _statService.GetHighMoodFoods(UserGuid, parameters));
+    public async Task<ActionResult<MoodFoodsResponse>> GetHighMoodFoods([FromQuery] GetStatsParameters parameters) {
+        return Ok(await _statService.GetMoodFoods(UserGuid, parameters, high: true));
+    }
+    
+    [HttpGet("mood/low-mood-foods")]
+    public async Task<ActionResult<MoodFoodsResponse>> GetLowMoodFoods([FromQuery] GetStatsParameters parameters) {
+        return Ok(await _statService.GetMoodFoods(UserGuid, parameters, high: false));
+    }
+    
+    [HttpGet("mood/mood-per-caloric-range")]
+    public async Task<ActionResult<MoodPerCaloricRange>> GetMoodPerCaloricRange([FromQuery] GetStatsParameters parameters) {
+        return Ok(await _statService.GetMoodPerCaloricRange(UserGuid, parameters));
     }
     
 }
