@@ -31,4 +31,9 @@ public class StatsController : TantalusController {
         return Ok(await _statService.GetMoodPerCaloricRange(UserGuid, parameters));
     }
     
+    [HttpGet("mood/foods-highest-average-mood")]
+    public async Task<ActionResult<MoodFoodsResponse>> GetFoodsHighestAverageMood([FromQuery] GetStatsParameters parameters) {
+        return Ok(await _statService.GetFoodsAverageMood(UserGuid, parameters, highest: true));
+    }
+    
 }

@@ -8,8 +8,10 @@ public sealed record MoodFood {
     public Guid Id { get; init; }
     public string Name { get; init; }
     public string ShortUrl { get; init; }
-    public int Total { get; init; }
-    public float Percent { get; init; }
+    
+    public int? Total { get; init; }
+    public float? Percent { get; init; }
+    public float? AverageMood { get; init; }
 } 
 
 public sealed record MoodPerCaloricRange {

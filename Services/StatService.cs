@@ -7,6 +7,7 @@ namespace Tantalus.Services;
 public interface IStatService {
     Task<MoodFoodsResponse> GetMoodFoods(Guid userId, GetStatsParameters parameters, bool high);
     Task<MoodPerCaloricRange> GetMoodPerCaloricRange(Guid userId, GetStatsParameters parameters);
+    Task<MoodFoodsResponse> GetFoodsAverageMood(Guid userId, GetStatsParameters parameters, bool highest);
 }
 
 public class StatService : IStatService {
@@ -24,7 +25,7 @@ public class StatService : IStatService {
                    AS (SELECT food_id AS id,
                               mood
                        FROM   portions
-                              join diary_entries USING (date)
+                       JOIN   diary_entries USING (date)
                        WHERE  date BETWEEN @startDate AND @endDate
                        AND    portions.user_id = @userId
                        AND    diary_entries.user_id = @userId
@@ -47,7 +48,8 @@ public class StatService : IStatService {
         return new MoodFoodsResponse {
             Foods = await connection.QueryAsync<MoodFood>(query,
                 new {
-                    userId, records = parameters.Records, startDate = parameters.StartDate,
+                    userId, records = parameters.Records, 
+                    startDate = parameters.StartDate,
                     endDate = parameters.EndDate
                 })
         };
@@ -55,22 +57,26 @@ public class StatService : IStatService {
 
     public async Task<MoodPerCaloricRange> GetMoodPerCaloricRange(Guid userId, GetStatsParameters parameters) {
 
+        // the diary entries join might be clarified with a WHERE clause, but requires user_id to be carried over
+        // carrying it over though conflicts with the group by (which in turn requires inclusion or use in an aggregate)
         const string query = @"
             SELECT lower_limit, upper_limit, ROUND(AVG(mood), 2) AS average_mood
             FROM (
                 SELECT mood, lower_limit, upper_limit
                 FROM ( (
-                        SELECT DATE, ROUND(SUM(quantity * (
+                        SELECT date, ROUND(SUM(quantity * (
                                         SELECT calories(foods)
                                         FROM foods
                                         WHERE id = selected_portions.food_id)
                                 ) / 100
                             ) calories
                         FROM portions AS selected_portions
-                        GROUP BY DATE
+                        WHERE user_id = @userId
+                        AND date BETWEEN @startDate AND @endDate
+                        GROUP BY date
                     ) calories_aggregates
-                    JOIN diary_entries USING(DATE)
-                )
+                    JOIN diary_entries ON diary_entries.date = calories_aggregates.date AND diary_entries.user_id = @userId                  
+                ) 
                 JOIN (
                     SELECT *
                     FROM (
@@ -83,7 +89,54 @@ public class StatService : IStatService {
 
         await using var connection = DbConnection;
         return new MoodPerCaloricRange {
-            Ranges = await connection.QueryAsync<CaloricRange>(query, new {userId})
+            Ranges = await connection.QueryAsync<CaloricRange>(query, new {
+                userId,
+                startDate = parameters.StartDate,
+                endDate = parameters.EndDate
+            })
+        };
+    }
+
+    public async Task<MoodFoodsResponse> GetFoodsAverageMood(Guid userId, GetStatsParameters parameters, bool highest) {
+        
+        // when average ratings are the same, for two or more foods, one could order by an addition property
+        // (ie. total count, grams, etc.) as a tie breaker
+        // in large tables ties are unlikely to occur
+        
+        // the second order by is required to restore order after a join and sort the forcefully included foods
+        
+        const string query = @"
+            SELECT id, name, short_url, average_mood
+            FROM (
+                SELECT food_id AS id, ROUND(AVG(mood), 2) AS average_mood
+                FROM(
+                    SELECT food_id, mood
+                    FROM ( (
+                            SELECT date, food_id, user_id
+                            FROM portions
+                            WHERE
+                                date BETWEEN @startDate AND @endDate
+                                AND user_id = @userId
+                            GROUP BY (date, food_id, user_id)
+                        ) foods_eaten
+                        JOIN diary_entries USING(date, user_id)
+                    ) foods_moods
+                ) AS foods_averages
+                GROUP BY food_id
+                ORDER BY
+                    food_id IN (
+                        '56f54f4c-601d-4be9-8dba-aa572ee0ab42',
+                        '56f54f4c-601d-4be9-8dba-aa572ee0ab42'
+                    ) DESC,
+                    average_mood DESC
+                LIMIT @records
+            ) sorted_foods_averages
+            JOIN foods USING (id)
+            ORDER BY average_mood DESC";
+
+        await using var connection = DbConnection;
+        return new MoodFoodsResponse {
+            Foods = await connection.QueryAsync<MoodFood>(query, new {userId, records = parameters.Records, startDate = parameters.StartDate, endDate = parameters.EndDate})
         };
     }
 }
