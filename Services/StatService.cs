@@ -104,8 +104,8 @@ public class StatService : IStatService {
         // in large tables ties are unlikely to occur
         
         // the second order by is required to restore order after a join and sort the forcefully included foods
-        
-        const string query = @"
+        var sortOrder = highest ? "DESC" : "ASC";
+        var query = @$"
             SELECT id, name, short_url, average_mood
             FROM (
                 SELECT food_id AS id, ROUND(AVG(mood), 2) AS average_mood
@@ -128,15 +128,16 @@ public class StatService : IStatService {
                         '56f54f4c-601d-4be9-8dba-aa572ee0ab42',
                         '56f54f4c-601d-4be9-8dba-aa572ee0ab42'
                     ) DESC,
-                    average_mood DESC
+                    average_mood {sortOrder}                    
                 LIMIT @records
             ) sorted_foods_averages
             JOIN foods USING (id)
-            ORDER BY average_mood DESC";
+            ORDER BY average_mood {sortOrder}";
 
+        // tk can't sort with average_mood * -1
         await using var connection = DbConnection;
         return new MoodFoodsResponse {
-            Foods = await connection.QueryAsync<MoodFood>(query, new {userId, records = parameters.Records, startDate = parameters.StartDate, endDate = parameters.EndDate})
+            Foods = await connection.QueryAsync<MoodFood>(query, new {userId, records = parameters.Records, startDate = parameters.StartDate, endDate = parameters.EndDate, highest})
         };
     }
 }
