@@ -11,4 +11,6 @@ public sealed record GetStatsParameters {
     
     [Required]
     public DateTime EndDate { get; init; }
+
+    public Guid[]? Included { get; init; }
 }

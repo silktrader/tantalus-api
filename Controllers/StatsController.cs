@@ -41,4 +41,9 @@ public class StatsController : TantalusController {
         return Ok(await _statService.GetFoodsAverageMood(UserGuid, parameters, highest: false));
     }
     
+    [HttpGet("mood/average-mood-per-DoW")]
+    public async Task<ActionResult<IEnumerable<float>>> GetAverageMoodPerDoW([FromQuery] GetStatsParameters parameters) {
+        return Ok(await _statService.GetAverageMoodPerDoW(UserGuid, parameters));
+    }
+    
 }

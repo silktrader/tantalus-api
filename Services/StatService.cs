@@ -8,6 +8,7 @@ public interface IStatService {
     Task<MoodFoodsResponse> GetMoodFoods(Guid userId, GetStatsParameters parameters, bool high);
     Task<MoodPerCaloricRange> GetMoodPerCaloricRange(Guid userId, GetStatsParameters parameters);
     Task<MoodFoodsResponse> GetFoodsAverageMood(Guid userId, GetStatsParameters parameters, bool highest);
+    Task<IEnumerable<float>> GetAverageMoodPerDoW(Guid userId, GetStatsParameters parameters);
 }
 
 public class StatService : IStatService {
@@ -124,10 +125,7 @@ public class StatService : IStatService {
                 ) AS foods_averages
                 GROUP BY food_id
                 ORDER BY
-                    food_id IN (
-                        '56f54f4c-601d-4be9-8dba-aa572ee0ab42',
-                        '56f54f4c-601d-4be9-8dba-aa572ee0ab42'
-                    ) DESC,
+                    food_id = ANY(@included) DESC,
                     average_mood {sortOrder}                    
                 LIMIT @records
             ) sorted_foods_averages
@@ -137,7 +135,38 @@ public class StatService : IStatService {
         // tk can't sort with average_mood * -1
         await using var connection = DbConnection;
         return new MoodFoodsResponse {
-            Foods = await connection.QueryAsync<MoodFood>(query, new {userId, records = parameters.Records, startDate = parameters.StartDate, endDate = parameters.EndDate, highest})
+            Foods = await connection.QueryAsync<MoodFood>(query, new {
+                userId, 
+                records = parameters.Records, 
+                startDate = parameters.StartDate, 
+                endDate = parameters.EndDate,
+                included = parameters.Included ?? Array.Empty<Guid>(),
+                highest
+            })
         };
     }
+
+    public async Task<IEnumerable<float>> GetAverageMoodPerDoW(Guid userId, GetStatsParameters parameters) {
+        
+        const string query = @"
+            SELECT average_mood
+            FROM (
+                SELECT
+                    date_part('isodow', date) AS dow,
+                    ROUND(AVG(mood), 2) AS average_mood
+                FROM diary_entries
+                WHERE date BETWEEN @startDate AND @endDate
+                AND user_id = @userId
+                GROUP BY dow
+                ORDER BY dow
+            ) days_average_mood";
+        
+        await using var connection = DbConnection;
+        return await connection.QueryAsync<float>(query, new {
+            userId, 
+            startDate = parameters.StartDate, 
+            endDate = parameters.EndDate
+        });
+    }
+
 }
