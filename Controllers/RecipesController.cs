@@ -21,8 +21,8 @@ public class RecipesController : TantalusController {
     }
     
     [HttpGet]
-    public async Task<ActionResult> GetRecipes([FromQuery] GetFoodsParameters parameters) {
-        var (recipesData, count) = await _recipeService.GetRecipes(parameters, UserGuid);
+    public async Task<ActionResult> GetPaginatedRecipes([FromQuery] GetFoodsParameters parameters) {
+        var (recipesData, count) = await _recipeService.GetPaginatedRecipes(parameters, UserGuid);
         var recipes = _mapper.Map<RecipeResponse[]>(recipesData);
         return Ok(new { recipes, count});
     }

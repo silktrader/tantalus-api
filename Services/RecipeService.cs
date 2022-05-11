@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Data.Common;
-using AutoMapper;
+﻿using AutoMapper;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Models;
@@ -12,7 +10,7 @@ using Tantalus.Models;
 namespace Tantalus.Services;
 
 public interface IRecipeService {
-    Task<(IEnumerable<RecipeResponse>, int count)> GetRecipes(GetFoodsParameters parameters, Guid userId);
+    Task<(IEnumerable<RecipeResponse>, long count)> GetPaginatedRecipes(GetFoodsParameters parameters, Guid userId);
     Task<bool> Exists(string name, Guid userId);
     Task CreateRecipe(RecipePostRequest recipeRequest, Guid userId);
     Task<RecipeResponse?> GetRecipe(Guid id, Guid userId);
@@ -38,22 +36,32 @@ public class RecipeService : IRecipeService {
         _connectionString = configuration.GetConnectionString("Database") ?? throw new InvalidOperationException();
     }
 
-    public async Task<(IEnumerable<RecipeResponse>, int count)> GetRecipes(GetFoodsParameters parameters, Guid userId) {
-        const string countQuery = "SELECT COUNT(*) FROM user_recipes(@userId)";
-
-        // filtering is optional and case insensitive
-        var nameFilter = parameters.NameFilter == null ? string.Empty : $"WHERE name ILIKE '%{parameters.NameFilter}%'";
-
-        var query = $@"
-            SELECT * FROM user_recipes(@userId) AS recipes {nameFilter}
+    public async Task<(IEnumerable<RecipeResponse>, long count)> GetPaginatedRecipes(GetFoodsParameters parameters, Guid userId) {
+        
+        // avoid aliasing columns to ensure correctness of mapping
+        const string query = @"
+            SELECT *
+            FROM (
+                SELECT id, name, access, created, count
+                FROM (
+                    SELECT *, COUNT(*) OVER() AS count
+                    FROM user_recipes(@userId)
+                ) counted_recipes
+                WHERE @unfiltered OR name ILIKE @nameFilter
+            ) recipes
             JOIN recipe_ingredients ON recipe_id = recipes.id
             JOIN foods ON recipe_ingredients.food_id = foods.id
-            FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
+            FETCH FIRST @pageSize ROWS ONLY
+            OFFSET @offset";
 
         await using var connection = DbConnection;
         var recipesDictionary = new Dictionary<Guid, RecipeResponse>();
-        var recipes = await connection.QueryAsync<RecipeResponse, IngredientResponse, FoodResponse, RecipeResponse>(query, map:
-            (recipe, ingredient, food) => {
+        
+        // must map to Int64, or cast to a smaller int in the query, due to Dapper 
+        long count = 0;
+        await connection.QueryAsync<RecipeResponse, long, IngredientResponse, FoodResponse, RecipeResponse>(query, map:
+            (recipe, recipesCount, ingredient, food) => {
+                count = recipesCount;
                 if (!recipesDictionary.TryGetValue(recipe.Id, out var recipeRecord)) {
                     recipeRecord = recipe;
                     recipeRecord.Ingredients = new List<IngredientResponse>();
@@ -64,13 +72,14 @@ public class RecipeService : IRecipeService {
                 recipeRecord.Ingredients.Add(ingredient);
                 return recipeRecord;
             },
-            splitOn: "food_id,id",
+            splitOn: "count,food_id,id",
             param: new {
                 userId,
+                unfiltered = parameters.NameFilter == null, 
+                nameFilter = $"%{parameters.NameFilter}%",
                 pageSize = parameters.PageSize,
                 offset = parameters.PageIndex * parameters.PageSize
             });
-        var count = await connection.ExecuteScalarAsync<int>(countQuery, new { userId });
         return (recipesDictionary.Values, count);
     }
 
