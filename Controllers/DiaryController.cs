@@ -15,11 +15,13 @@ public class DiaryController : TantalusController {
     private readonly IMapper _mapper;
     private readonly IDiaryService _diaryService;
     private readonly IFoodService _foodService;
+    private readonly IRecipeService _recipeService;
 
-    public DiaryController(IMapper mapper, IDiaryService diaryService, IFoodService foodService) {
+    public DiaryController(IMapper mapper, IDiaryService diaryService, IFoodService foodService, IRecipeService recipeService) {
         _mapper = mapper;
         _diaryService = diaryService;
         _foodService = foodService;
+        _recipeService = recipeService;
     }
 
     [HttpGet("{date}")]
@@ -51,6 +53,44 @@ public class DiaryController : TantalusController {
         // don't proceed with the insertion when even one food reference is missing
         if (foods.Length != foodsIds.Length)
             return BadRequest("Missing foods references.");
+
+        return Ok( new {
+            foods,
+            portions = await _diaryService.AddPortions(portionRequests, date, userGuid)
+        });
+    }
+    
+    [HttpPost("{date}/recipes")]
+    public async Task<IActionResult> AddRecipePortions([FromBody] AddRecipePortionsRequest addRecipePortionsRequest, [FromRoute] DateOnly date) {
+
+        var userGuid = UserGuid;
+        // create a daily entry when it's missing to meet the foreign key constraints
+        await _diaryService.CreateDailyEntry(date, userGuid);
+        
+        // fetch recipe
+        var recipe = await _recipeService.GetRecipe(addRecipePortionsRequest.Id, userGuid);
+        if (recipe == null)
+            return NotFound();
+        
+        // create single portion requests, to piggy back on existing service methods
+        var portionRequests = new List<PortionRequest>();
+        var foodsIds = new List<Guid>();
+        foreach (var ingredient in recipe.Ingredients) {
+            portionRequests.Add(new PortionRequest {
+                    Id = Guid.NewGuid(),
+                    FoodId = ingredient.Food.Id,
+                    Quantity = ingredient.Quantity,
+                    Meal = addRecipePortionsRequest.Meal
+                } );
+            foodsIds.Add(ingredient.Food.Id);
+        }
+        
+        // gather all referenced foods and ascertain they are accessible by the user; can't use hashsets
+        var foods = (await _foodService.GetFoods(foodsIds, userGuid)).ToArray();
+
+        // don't proceed with the insertion when even one food reference is missing
+        if (foods.Length != foodsIds.Count)
+            return BadRequest("Missing foods references");
 
         return Ok( new {
             foods,

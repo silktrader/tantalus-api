@@ -19,8 +19,3 @@ public record PortionRequest {
 }
 
 public record PortionResponse : PortionRequest;
-
-// public class PortionGetDto : PortionPostDto
-// {
-//     public int Id { get; set; }
-// }
