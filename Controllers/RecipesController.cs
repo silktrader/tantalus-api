@@ -35,6 +35,14 @@ public class RecipesController : TantalusController {
         return Ok(recipe);
     }
     
+    [HttpGet("autocomplete")]
+    public async Task<ActionResult<IEnumerable<PortionResourceResponse>>> GetAutocomplete(string filter) {
+        if (string.IsNullOrEmpty(filter))
+            return NoContent();
+
+        return Ok(await _recipeService.GetRecipeAutocomplete(filter, UserGuid, 3));
+    }
+    
     [HttpPost]
     public async Task<ActionResult> AddRecipe(RecipePostRequest recipe) {
         var userGuid = UserGuid;

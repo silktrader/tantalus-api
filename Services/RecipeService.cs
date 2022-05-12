@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Controllers;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Models;
@@ -21,6 +22,7 @@ public interface IRecipeService {
     Task<Recipe?> TrackRecipe(Guid id, Guid userId);
 
     Task UpdateRecipe(Recipe recipe, RecipePostRequest request);
+    Task<IEnumerable<PortionResourceResponse>> GetRecipeAutocomplete(string nameFilter, Guid userId, int limit);
 }
 
 public class RecipeService : IRecipeService {
@@ -40,8 +42,7 @@ public class RecipeService : IRecipeService {
         
         // avoid aliasing columns to ensure correctness of mapping
         const string query = @"
-            SELECT *
-            FROM (
+            SELECT * FROM (
                 SELECT id, name, access, created, count
                 FROM (
                     SELECT *, COUNT(*) OVER() AS count
@@ -104,6 +105,16 @@ public class RecipeService : IRecipeService {
             },
             splitOn: "food_id,id",
             param: new { id, userId })).FirstOrDefault();
+    }
+    
+    public async Task<IEnumerable<PortionResourceResponse>> GetRecipeAutocomplete(string nameFilter, Guid userId, int limit) { ;
+        const string query = @"
+            SELECT id, name, 0 as priority, true as isRecipe 
+            FROM user_recipes(@userId) 
+            WHERE    name ilike @pattern
+            LIMIT    @limit";
+        await using var connection = DbConnection;
+        return await connection.QueryAsync<PortionResourceResponse>(query, new { userId, pattern = $"%{nameFilter}%", limit });
     }
 
     public async Task<bool> Exists(string name, Guid userId) {
