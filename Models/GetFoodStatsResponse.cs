@@ -8,6 +8,7 @@ public record GetFoodStatsResponse {
     public int Max { get; init; }
     public DateOnly? LastEaten { get; init; }
     public IEnumerable<FrequentFood> FrequentFoods { get; init; }
+    public IEnumerable<SimilarFood> SimilarFoods { get; init; }
     public IEnumerable<FrequentMeal> FrequentMeals { get; init; }
     public IEnumerable<RecipeFoodStat> Recipes { get; init; }
 }
@@ -28,4 +29,11 @@ public record RecipeFoodStat {
     public Guid Id { get; init; }
     public string Name { get; init; }
     public int Quantity { get; init; }
+}
+
+public sealed record SimilarFood {
+    public Guid Id { get; init; }
+    public string Name { get; init; }
+    public string ShortUrl { get; init; }
+    public float Divergence { get; init; }
 }

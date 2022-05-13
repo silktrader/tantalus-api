@@ -209,6 +209,28 @@ public class FoodService : IFoodService {
                    JOIN recipes
                      ON recipe_id = id
             WHERE  food_id = @foodId;";
+
+        const string similarFoodsQuery = @"
+            SELECT foods.name, foods.id, foods.short_url, divergence
+            FROM (
+                SELECT proteins, carbs, fats, alcohol
+                FROM user_foods(@userId)
+                WHERE id = @foodId
+            ) reference,
+            foods,
+            LATERAL (
+                SELECT (
+                        ABS(foods.proteins - reference.proteins) + 
+                        ABS(foods.carbs - reference.carbs) + 
+                        ABS(foods.fats - reference.fats) * 2.25 + 
+                        ABS(foods.alcohol - reference.alcohol) * 1.75
+                    ) AS divergence
+            ) divergence_values
+            WHERE
+                id != @foodId AND
+                divergence < 20
+            ORDER BY divergence
+            LIMIT 5";
         
         await using var connection = DbConnection;
         var (count, quantity, max, lastEaten) = await connection.QueryFirstAsync<(int count, int quantity, int max, DateTime lastEaten)>(consumptionQuery, parameters);
@@ -219,8 +241,9 @@ public class FoodService : IFoodService {
             Max = max,
             LastEaten = lastEaten == DateTime.MinValue ? null : DateOnly.FromDateTime(lastEaten),
             FrequentFoods = await connection.QueryAsync<FrequentFood>(associatedFoodsQuery, parameters),
+            SimilarFoods = await connection.QueryAsync<SimilarFood>(similarFoodsQuery, parameters),
             FrequentMeals = await connection.QueryAsync<FrequentMeal>(frequentMealsQuery, parameters),
-            Recipes = await connection.QueryAsync<RecipeFoodStat>(recipesQuery, parameters)
+            Recipes = await connection.QueryAsync<RecipeFoodStat>(recipesQuery, parameters),
         };
     }
 
