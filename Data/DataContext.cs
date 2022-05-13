@@ -24,6 +24,7 @@ public class DataContext : DbContext {
     public DbSet<Portion> Portions { get; set; } = null!;
     public DbSet<Recipe> Recipes { get; set; } = null!;
     public DbSet<RecipeIngredient> RecipeIngredients { get; set; } = null!;
+    public DbSet<RecipeIngredient> WeightMeasurements { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
         optionsBuilder.UseNpgsql(
@@ -166,6 +167,16 @@ public class DataContext : DbContext {
             entity.HasOne(ingredient => ingredient.Food)
                 .WithMany(food => food.Ingredients)
                 .HasForeignKey(ingredient => ingredient.FoodId);
+        });
+
+        builder.Entity<WeightMeasurement>(entity => {
+            entity.Property(measurement => measurement.MeasuredOn).IsRequired().HasColumnType("timestamptz");
+            entity.Property(measurement => measurement.Weight).IsRequired();
+            entity.HasKey(measurement => new { measurement.UserId, measurement.MeasuredOn });
+            entity.HasOne(measurement => measurement.User)
+                .WithMany(user => user.WeightMeasurements)
+                .HasForeignKey(measurement => measurement.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
