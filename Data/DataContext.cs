@@ -24,7 +24,7 @@ public class DataContext : DbContext {
     public DbSet<Portion> Portions { get; set; } = null!;
     public DbSet<Recipe> Recipes { get; set; } = null!;
     public DbSet<RecipeIngredient> RecipeIngredients { get; set; } = null!;
-    public DbSet<RecipeIngredient> WeightMeasurements { get; set; } = null!;
+    public DbSet<WeightMeasurement> WeightMeasurements { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
         optionsBuilder.UseNpgsql(

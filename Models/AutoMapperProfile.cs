@@ -10,5 +10,6 @@ public class AutoMapperProfile : Profile {
         CreateMap<Food, FoodResponse>();
         CreateMap<Portion, PortionResponse>();
         CreateMap<PortionRequest, Portion>();
+        CreateMap<WeightMeasurementRequest, WeightMeasurement>();
     }
 }

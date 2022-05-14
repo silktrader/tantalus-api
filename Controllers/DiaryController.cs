@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tantalus.Models;
@@ -139,4 +138,15 @@ public class DiaryController : TantalusController {
         await _diaryService.UpdateFitness(date, UserGuid, request.Fitness);
         return Ok();
     }
+
+    [HttpPost("weight")]
+    public async Task<ActionResult> AddWeightMeasurement(WeightMeasurementRequest request) {
+        await _diaryService.AddWeightMeasurement(UserGuid, request);
+        return Ok();
+    }
+
+    // [HttpGet("{date}/weight")]
+    // public async Task<ActionResult> GetWeightMeasurements(DateOnly date) {
+    //     
+    // }
 }

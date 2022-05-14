@@ -10,7 +10,7 @@ namespace Tantalus.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "weight_measurement",
+                name: "weight_measurements",
                 columns: table => new
                 {
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,7 +34,7 @@ namespace Tantalus.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "weight_measurement");
+                name: "weight_measurements");
         }
     }
 }

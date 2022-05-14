@@ -43,7 +43,8 @@ public class DiaryService : IDiaryService {
             Mood = diaryEntry.Mood,
             Fitness = diaryEntry.Fitness,
             Portions = _mapper.Map<PortionResponse[]>(portions),
-            Foods = _mapper.Map<FoodResponse[]>(await connection.QueryAsync<Food>(foodsQuery, new { foodsIds }))
+            Foods = _mapper.Map<FoodResponse[]>(await connection.QueryAsync<Food>(foodsQuery, new { foodsIds })),
+            WeightMeasurements = await GetWeightMeasurements(dateOnly, userId)
         };
     }
 
@@ -134,6 +135,26 @@ public class DiaryService : IDiaryService {
         await using var connection = DbConnection;
         return await connection.ExecuteAsync(query, new { date, userId, fitness }) == 1;
     }
+
+    public async Task AddWeightMeasurement(Guid userId, WeightMeasurementRequest request) {
+        var weightMeasurement = _mapper.Map<WeightMeasurement>(request);
+        weightMeasurement.UserId = userId;
+        await _dataContext.WeightMeasurements.AddAsync(_mapper.Map<WeightMeasurement>(request));
+        await _dataContext.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<WeightMeasurementRequest>> GetWeightMeasurements(DateOnly dateOnly, Guid userId) {
+        // avoid using BETWEEN operator, to avert timezone issues
+        var date = dateOnly.ToDateTime(TimeOnly.MinValue);
+        const string query = @"
+            SELECT *
+            FROM weight_measurements
+            WHERE
+                user_id = @userId AND
+                measured_on = @date";
+        await using var connection = DbConnection;
+        return await connection.QueryAsync<WeightMeasurementRequest>(query, new { userId, date });
+    }
 }
 
 public interface IDiaryService {
@@ -146,4 +167,6 @@ public interface IDiaryService {
     Task<int> DeleteDiary(DateOnly dateOnly, Guid userId);
     Task<bool> UpdateFitness(DateOnly dateOnly, Guid userId, short fitness);
     Task<bool> UpdateMood(DateOnly dateOnly, Guid userId, short mood);
+    Task AddWeightMeasurement(Guid userId, WeightMeasurementRequest request);
+    Task<IEnumerable<WeightMeasurementRequest>> GetWeightMeasurements(DateOnly dateOnly, Guid userId);
 }
