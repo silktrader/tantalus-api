@@ -5,7 +5,7 @@ namespace Tantalus.Models;
 public sealed record DiaryEntryResponse {
     public IEnumerable<FoodResponse> Foods { get; init; }
     public IEnumerable<PortionResponse> Portions { get; init; }
-    public IEnumerable<WeightMeasurementRequest> WeightMeasurements { get; init; }
+    public WeightReportResponse WeightReport { get; init; }
     public string? Comment { get; init; }
     public short Mood { get; init; }
     public short Fitness { get; init; }

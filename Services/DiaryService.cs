@@ -44,7 +44,7 @@ public class DiaryService : IDiaryService {
             Fitness = diaryEntry.Fitness,
             Portions = _mapper.Map<PortionResponse[]>(portions),
             Foods = _mapper.Map<FoodResponse[]>(await connection.QueryAsync<Food>(foodsQuery, new { foodsIds })),
-            WeightMeasurements = await GetWeightMeasurements(dateOnly, userId)
+            WeightReport = await GetWeightReport(dateOnly, userId)
         };
     }
 
@@ -136,24 +136,51 @@ public class DiaryService : IDiaryService {
         return await connection.ExecuteAsync(query, new { date, userId, fitness }) == 1;
     }
 
-    public async Task AddWeightMeasurement(Guid userId, WeightMeasurementRequest request) {
+    public async Task AddWeightMeasurement(Guid userId, WeightReportResponse request) {
         var weightMeasurement = _mapper.Map<WeightMeasurement>(request);
         weightMeasurement.UserId = userId;
         await _dataContext.WeightMeasurements.AddAsync(_mapper.Map<WeightMeasurement>(request));
         await _dataContext.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<WeightMeasurementRequest>> GetWeightMeasurements(DateOnly dateOnly, Guid userId) {
+    public async Task<WeightReportResponse> GetWeightReport(DateOnly dateOnly, Guid userId) {
         // avoid using BETWEEN operator, to avert timezone issues
+        // days can be added to the date due to zero timestamp; possible issue when changed
         var date = dateOnly.ToDateTime(TimeOnly.MinValue);
         const string query = @"
-            SELECT *
-            FROM weight_measurements
-            WHERE
-                user_id = @userId AND
-                measured_on = @date";
+            SELECT
+                ROUND(selected.weight) AS weight,
+                selected.fat AS fat,
+                measurements,
+                ROUND(selected.weight - previous.weight) AS previous_weight_change,
+                ROUND((selected.fat - previous.fat)::numeric, 2) as previous_fat_change,
+                ROUND(selected.weight - last_30_days.weight) AS last_30_days_weight_change,
+                ROUND((selected.fat - last_30_days.fat)::numeric, 2) as last_30_days_fat_change
+            FROM (
+                SELECT AVG(weight) AS weight, AVG(fat) AS fat, count(*) as measurements
+                FROM weight_measurements
+                WHERE
+                    user_id = @userId AND
+                    measured_on >= @date AND
+                    measured_on < @date + interval '1' day
+            ) selected, (
+                SELECT weight, fat
+                FROM weight_measurements
+                WHERE
+                    user_id = @userId AND
+                    measured_on < @date
+                ORDER BY measured_on DESC
+                LIMIT 1
+            ) previous, (
+                SELECT AVG(weight) AS weight, AVG(fat) AS fat
+                FROM weight_measurements
+                WHERE
+                    user_id = @userId AND
+                    measured_on >= @date - interval '30' day AND
+                    measured_on < @date
+            ) last_30_days";
         await using var connection = DbConnection;
-        return await connection.QueryAsync<WeightMeasurementRequest>(query, new { userId, date });
+        return await connection.QuerySingleAsync<WeightReportResponse>(query, new { userId, date });
     }
 }
 
@@ -167,6 +194,6 @@ public interface IDiaryService {
     Task<int> DeleteDiary(DateOnly dateOnly, Guid userId);
     Task<bool> UpdateFitness(DateOnly dateOnly, Guid userId, short fitness);
     Task<bool> UpdateMood(DateOnly dateOnly, Guid userId, short mood);
-    Task AddWeightMeasurement(Guid userId, WeightMeasurementRequest request);
-    Task<IEnumerable<WeightMeasurementRequest>> GetWeightMeasurements(DateOnly dateOnly, Guid userId);
+    Task AddWeightMeasurement(Guid userId, WeightReportResponse request);
+    Task<WeightReportResponse> GetWeightReport(DateOnly dateOnly, Guid userId);
 }

@@ -140,13 +140,14 @@ public class DiaryController : TantalusController {
     }
 
     [HttpPost("weight")]
-    public async Task<ActionResult> AddWeightMeasurement(WeightMeasurementRequest request) {
+    public async Task<ActionResult> AddWeightMeasurement(WeightReportResponse request) {
         await _diaryService.AddWeightMeasurement(UserGuid, request);
         return Ok();
     }
 
-    // [HttpGet("{date}/weight")]
-    // public async Task<ActionResult> GetWeightMeasurements(DateOnly date) {
-    //     
-    // }
+    [HttpGet("{date}/weight-report")]
+    public async Task<ActionResult> GetWeightReport(DateOnly date) {
+
+        return Ok();
+    }
 }
