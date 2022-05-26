@@ -46,6 +46,7 @@ services.AddScoped<IFoodService, FoodService>();
 services.AddScoped<IDiaryService, DiaryService>();
 services.AddScoped<IRecipeService, RecipeService>();
 services.AddScoped<IStatService, StatService>();
+services.AddScoped<IWeightService, WeightService>();
 
 var app = builder.Build();
 

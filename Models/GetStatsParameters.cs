@@ -7,10 +7,10 @@ public sealed record GetStatsParameters {
     public int Records { get; init; }
 
     [Required]
-    public DateTime StartDate { get; init; }
+    public DateTime Start { get; init; }
     
     [Required]
-    public DateTime EndDate { get; init; }
+    public DateTime End { get; init; }
 
     public Guid[]? Included { get; init; }
 }

@@ -9,6 +9,7 @@ public interface IStatService {
     Task<MoodPerCaloricRange> GetMoodPerCaloricRange(Guid userId, GetStatsParameters parameters);
     Task<MoodFoodsResponse> GetFoodsAverageMood(Guid userId, GetStatsParameters parameters, bool highest);
     Task<IEnumerable<float>> GetAverageMoodPerDoW(Guid userId, GetStatsParameters parameters);
+    Task<StatsOverviewResponse> GetStatsOverview(Guid userId);
 }
 
 public class StatService : IStatService {
@@ -50,8 +51,8 @@ public class StatService : IStatService {
             Foods = await connection.QueryAsync<MoodFood>(query,
                 new {
                     userId, records = parameters.Records, 
-                    startDate = parameters.StartDate,
-                    endDate = parameters.EndDate
+                    startDate = parameters.Start,
+                    endDate = parameters.End
                 })
         };
     }
@@ -92,8 +93,8 @@ public class StatService : IStatService {
         return new MoodPerCaloricRange {
             Ranges = await connection.QueryAsync<CaloricRange>(query, new {
                 userId,
-                startDate = parameters.StartDate,
-                endDate = parameters.EndDate
+                startDate = parameters.Start,
+                endDate = parameters.End
             })
         };
     }
@@ -138,8 +139,8 @@ public class StatService : IStatService {
             Foods = await connection.QueryAsync<MoodFood>(query, new {
                 userId, 
                 records = parameters.Records, 
-                startDate = parameters.StartDate, 
-                endDate = parameters.EndDate,
+                startDate = parameters.Start, 
+                endDate = parameters.End,
                 included = parameters.Included ?? Array.Empty<Guid>(),
                 highest
             })
@@ -164,9 +165,31 @@ public class StatService : IStatService {
         await using var connection = DbConnection;
         return await connection.QueryAsync<float>(query, new {
             userId, 
-            startDate = parameters.StartDate, 
-            endDate = parameters.EndDate
+            startDate = parameters.Start, 
+            endDate = parameters.End
         });
+    }
+
+    public async Task<StatsOverviewResponse> GetStatsOverview(Guid userId) {
+
+        const string weightQuery = @"
+            SELECT
+                weight AS last_weight,
+                measured_on AS last_measured,
+                COUNT(*) OVER() AS measurements,
+                AVG(weight) OVER() as average_weight,
+                MAX(weight) OVER() AS max_weight,
+                MIN(weight) OVER() AS min_weight
+            FROM weight_measurements
+            WHERE user_id = @userId
+            ORDER BY measured_on DESC
+            LIMIT 1";
+
+        await using var connection = DbConnection;
+        return new StatsOverviewResponse {
+            WeightOverview =
+                await connection.QuerySingleAsync<StatsOverviewResponse.Weight>(weightQuery, new { userId })
+        };
     }
 
 }

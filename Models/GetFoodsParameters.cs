@@ -8,3 +8,4 @@ public record GetFoodsParameters(
     [Required] FoodAttribute SortProperty,
     [Required] bool Ascending,
     string? NameFilter);
+    
