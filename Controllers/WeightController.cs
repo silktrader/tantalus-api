@@ -20,5 +20,10 @@ public class WeightController: TantalusController {
     public async Task<ActionResult<AllWeightMeasurementsResponse>> GetWeightMeasurements([FromQuery] WeightStatRequest parameters) {
         return Ok(await _weightService.GetWeightMeasurements(UserGuid, parameters));
     }
+
+    [HttpPut]
+    public async Task<ActionResult> UpdateWeightMeasurement(WeightUpdateRequest request) {
+        return await _weightService.UpdateWeightMeasurement(UserGuid, request) == 1 ? NoContent() : BadRequest();
+    }
     
 }

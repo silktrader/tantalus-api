@@ -6,7 +6,7 @@ public sealed record AllWeightMeasurementsResponse {
 }
 
 public sealed record WeightMeasurementResponse {
-    public DateTime MeasuredOn { get; init; }
+    public DateTimeOffset MeasuredOn { get; init; }
     public int Weight { get; init; }           
     public float? Fat { get; init; }
     public string? Note { get; set; }

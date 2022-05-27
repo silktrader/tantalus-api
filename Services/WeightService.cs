@@ -7,6 +7,8 @@ namespace Tantalus.Services;
 
 public interface IWeightService {
     Task<AllWeightMeasurementsResponse> GetWeightMeasurements(Guid userId, WeightStatRequest parameters);
+    Task<WeightMeasurementResponse?> GetWeightMeasurement(DateTime date, Guid userId);
+    Task<int> UpdateWeightMeasurement(Guid userId, WeightUpdateRequest request);
 }
 
 public class WeightService : IWeightService {
@@ -33,6 +35,7 @@ public class WeightService : IWeightService {
                 )
             ORDER BY {sortProperty} {parameters.Direction}
             FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
+        // brackets around parameters.Direction required to avoid Rider issues
 
         const string countQuery = @"
             SELECT count(*)
@@ -57,5 +60,24 @@ public class WeightService : IWeightService {
             Measurements = await connection.QueryAsync<WeightMeasurementResponse>(query, queryParameters),
             Count = await connection.ExecuteScalarAsync<int>(countQuery, queryParameters)
         };
+    }
+    
+    public async Task<WeightMeasurementResponse?> GetWeightMeasurement(DateTime date, Guid userId) {
+        const string query = "SELECT * FROM weight_measurements WHERE measured_on = @date AND user_id = @userId";
+        await using var connection = DbConnection;
+        return await connection.QueryFirstOrDefaultAsync<WeightMeasurementResponse>(query, new { date, userId });
+    }
+
+    public async Task<int> UpdateWeightMeasurement(Guid userId, WeightUpdateRequest request) {
+        const string query = @"
+            UPDATE weight_measurements
+            SET weight = @weight,
+                fat = @fat,
+                note = @note
+            WHERE
+                user_id = @userId AND
+                DATE_TRUNC('minute', measured_on) = DATE_TRUNC('minute', @measuredOn)";
+        await using var connection = DbConnection;
+        return await connection.ExecuteAsync(query, new { request.MeasuredOn, request.Weight, request.Fat, request.Note, userId });
     }
 }
