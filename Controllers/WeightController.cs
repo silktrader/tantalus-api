@@ -85,5 +85,10 @@ public class WeightController: TantalusController {
 
         return Ok(new { Imported = await _weightService.ImportWeightMeasurements(measurements, data.Overwrite) });
     }
+
+    [HttpDelete("{measuredOn}")]
+    public async Task<ActionResult> DeleteMeasurement(DateTimeOffset measuredOn) {
+        return await _weightService.DeleteWeightMeasurement(UserGuid, measuredOn) == 1 ? Ok() : NotFound();
+    }
     
 }

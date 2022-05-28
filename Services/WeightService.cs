@@ -11,6 +11,7 @@ public interface IWeightService {
     Task<WeightMeasurementResponse?> GetWeightMeasurement(DateTime date, Guid userId);
     Task<int> UpdateWeightMeasurement(Guid userId, WeightUpdateRequest request);
     Task<int> ImportWeightMeasurements(IList<WeightMeasurement> measurements, bool overwrite);
+    Task<int> DeleteWeightMeasurement(Guid userId, DateTimeOffset measuredOn);
 }
 
 public class WeightService : IWeightService {
@@ -49,11 +50,12 @@ public class WeightService : IWeightService {
                     measured_on < @end
                 )";
 
+        // the end date is inclusive
         var queryParameters = new {
             userId,
             unbound = parameters.Start == null,
             start = parameters.Start, 
-            end = parameters.End,
+            end = parameters.End?.AddDays(1),
             pageSize = parameters.PageSize,
             offset = parameters.PageIndex * parameters.PageSize
         };
@@ -108,5 +110,11 @@ public class WeightService : IWeightService {
         }
 
         return rows;
+    }
+
+    public async Task<int> DeleteWeightMeasurement(Guid userId, DateTimeOffset measuredOn) {
+        const string query = @"DELETE FROM weight_measurements WHERE measured_on = @measuredOn AND user_id = @userId;";
+        await using var connection = DbConnection;
+        return await connection.ExecuteAsync(query, new { measuredOn, userId });
     }
 }
