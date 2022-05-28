@@ -76,7 +76,7 @@ public class WeightService : IWeightService {
                 note = @note
             WHERE
                 user_id = @userId AND
-                DATE_TRUNC('minute', measured_on) = DATE_TRUNC('minute', @measuredOn)";
+                measured_on = @measuredOn";
         await using var connection = DbConnection;
         return await connection.ExecuteAsync(query, new { request.MeasuredOn, request.Weight, request.Fat, request.Note, userId });
     }
