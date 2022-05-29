@@ -22,7 +22,7 @@ public class WeightController: TantalusController {
     }
     
     [HttpGet]
-    public async Task<ActionResult<AllWeightMeasurementsResponse>> GetWeightMeasurements([FromQuery] WeightStatRequest parameters) {
+    public async Task<ActionResult<AllWeightsResponse>> GetWeightMeasurements([FromQuery] WeightStatRequest parameters) {
         return Ok(await _weightService.GetWeightMeasurements(UserGuid, parameters));
     }
 
@@ -31,6 +31,20 @@ public class WeightController: TantalusController {
         return await _weightService.UpdateWeightMeasurement(UserGuid, request) == 1 ? NoContent() : BadRequest();
     }
     
+    [HttpDelete("{measuredOn}")]
+    public async Task<ActionResult> DeleteMeasurement(DateTimeOffset measuredOn) {
+        return await _weightService.DeleteWeightMeasurement(UserGuid, measuredOn) == 1 ? Ok() : NotFound();
+    }
+
+    [HttpGet("duplicates")]
+    public async Task<ActionResult> GetDuplicates([FromQuery] WeightStatRequest request) {
+        var duplicates = (await _weightService.FindDuplicates(UserGuid, request)).ToList();
+        return Ok( new {
+            duplicates,
+            total = duplicates.FirstOrDefault()?.Total ?? 0
+        });
+    }
+
     [HttpPost("import")]
     public async Task<ActionResult> ImportWeightMeasurements([FromForm] WeightMeasurementImport data) {
         var file = data.Data;
@@ -85,10 +99,4 @@ public class WeightController: TantalusController {
 
         return Ok(new { Imported = await _weightService.ImportWeightMeasurements(measurements, data.Overwrite) });
     }
-
-    [HttpDelete("{measuredOn}")]
-    public async Task<ActionResult> DeleteMeasurement(DateTimeOffset measuredOn) {
-        return await _weightService.DeleteWeightMeasurement(UserGuid, measuredOn) == 1 ? Ok() : NotFound();
-    }
-    
 }

@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using System.Net.Cache;
+using Dapper;
 using Models;
 using Npgsql;
 using Tantalus.Entities;
@@ -7,11 +8,12 @@ using Tantalus.Models;
 namespace Tantalus.Services;
 
 public interface IWeightService {
-    Task<AllWeightMeasurementsResponse> GetWeightMeasurements(Guid userId, WeightStatRequest parameters);
-    Task<WeightMeasurementResponse?> GetWeightMeasurement(DateTime date, Guid userId);
+    Task<AllWeightsResponse> GetWeightMeasurements(Guid userId, WeightStatRequest parameters);
+    Task<WeightResponse?> GetWeightMeasurement(DateTime date, Guid userId);
     Task<int> UpdateWeightMeasurement(Guid userId, WeightUpdateRequest request);
     Task<int> ImportWeightMeasurements(IList<WeightMeasurement> measurements, bool overwrite);
     Task<int> DeleteWeightMeasurement(Guid userId, DateTimeOffset measuredOn);
+    Task<IEnumerable<ContiguousWeightResponse>> FindDuplicates(Guid userId, WeightStatRequest request);
 }
 
 public class WeightService : IWeightService {
@@ -23,19 +25,17 @@ public class WeightService : IWeightService {
         _connectionString = configuration.GetConnectionString("Database") ?? throw new InvalidOperationException();
     }
 
-    public async Task<AllWeightMeasurementsResponse> GetWeightMeasurements(Guid userId, WeightStatRequest parameters) {
+    public async Task<AllWeightsResponse> GetWeightMeasurements(Guid userId, WeightStatRequest parameters) {
 
-        var sortProperty = parameters.Sort == WeightAttributes.MeasuredOn ? "measured_on" : parameters.Sort.ToString();
+        var sortProperty = parameters.Sort == SortAttributes.MeasuredOn ? "measured_on" : parameters.Sort.ToString();
         
         var query = $@"
             SELECT weight, fat, measured_on, note
             FROM weight_measurements
             WHERE
                 user_id = @userId AND
-                @unbound OR (
-                    measured_on >= @start AND
-                    measured_on < @end
-                )
+                measured_on >= @start AND
+                measured_on < @end
             ORDER BY {sortProperty} {parameters.Direction}
             FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
         // brackets around parameters.Direction required to avoid Rider issues
@@ -45,31 +45,28 @@ public class WeightService : IWeightService {
             FROM weight_measurements
             WHERE
                 user_id = @userId AND
-                @unbound OR (
-                    measured_on >= @start AND
-                    measured_on < @end
-                )";
+                measured_on >= @start AND
+                measured_on < @end";
 
         // the end date is inclusive
         var queryParameters = new {
             userId,
-            unbound = parameters.Start == null,
             start = parameters.Start, 
-            end = parameters.End?.AddDays(1),
+            end = parameters.End.AddDays(1),
             pageSize = parameters.PageSize,
             offset = parameters.PageIndex * parameters.PageSize
         };
         await using var connection = DbConnection;
-        return new AllWeightMeasurementsResponse {
-            Measurements = await connection.QueryAsync<WeightMeasurementResponse>(query, queryParameters),
+        return new AllWeightsResponse {
+            Measurements = await connection.QueryAsync<WeightResponse>(query, queryParameters),
             Count = await connection.ExecuteScalarAsync<int>(countQuery, queryParameters)
         };
     }
     
-    public async Task<WeightMeasurementResponse?> GetWeightMeasurement(DateTime date, Guid userId) {
+    public async Task<WeightResponse?> GetWeightMeasurement(DateTime date, Guid userId) {
         const string query = "SELECT * FROM weight_measurements WHERE measured_on = @date AND user_id = @userId";
         await using var connection = DbConnection;
-        return await connection.QueryFirstOrDefaultAsync<WeightMeasurementResponse>(query, new { date, userId });
+        return await connection.QueryFirstOrDefaultAsync<WeightResponse>(query, new { date, userId });
     }
 
     public async Task<int> UpdateWeightMeasurement(Guid userId, WeightUpdateRequest request) {
@@ -117,4 +114,47 @@ public class WeightService : IWeightService {
         await using var connection = DbConnection;
         return await connection.ExecuteAsync(query, new { measuredOn, userId });
     }
+
+    public async Task<IEnumerable<ContiguousWeightResponse>> FindDuplicates(Guid userId, WeightStatRequest request) {
+        var query = $@"
+            SELECT
+                COUNT(successor.measured_on) OVER() AS total,
+                successor.measured_on AS measured_on,
+                successor.weight AS weight,
+                successor.fat AS fat,
+                successor.note,
+                ROUND(EXTRACT(EPOCH FROM(successor.measured_on - predecessor.measured_on))) as seconds_after,
+                successor.weight - predecessor.weight AS weight_difference,
+                successor.fat - predecessor.fat AS fat_difference
+            FROM
+                weight_measurements AS successor,
+                weight_measurements AS predecessor
+            WHERE
+                successor.user_id = @userId AND
+                predecessor.user_id = @userId AND
+                age(successor.measured_on, predecessor.measured_on) BETWEEN '1 millisecond' AND '20 minute'
+            ORDER BY {GetSortProperty(request.Sort)} {request.Direction}
+            FETCH FIRST @pageSize ROWS ONLY
+            OFFSET @offset";
+           
+        
+        await using var connection = DbConnection;
+        return await connection.QueryAsync<ContiguousWeightResponse>(query, 
+            new { userId, 
+                request.Start, 
+                end = request.End.AddDays(1),
+                request.PageSize, 
+                offset = request.PageIndex * request.PageSize });
+    }
+
+    private static string GetSortProperty(SortAttributes attribute) {
+        return attribute switch {
+            SortAttributes.MeasuredOn => "measured_on",
+            SortAttributes.WeightDifference => "weight_difference",
+            SortAttributes.FatDifference => "fat_difference",
+            SortAttributes.SecondsAfter => "seconds_after",
+            _ => attribute.ToString()
+        };
+    }
 }
+

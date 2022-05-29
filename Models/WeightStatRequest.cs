@@ -14,18 +14,19 @@ public record PaginatedRequest {
     public SortDirection Direction { get; init; }
 }
 
-public record WeightStatRequest : PaginatedRequest {
-
-    public WeightAttributes Sort { get; init; }
-    
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
+public sealed record WeightStatRequest : PaginatedRequest {
+    public SortAttributes Sort { get; init; }
+    public DateTime Start { get; init; }
+    public DateTime End { get; init; }
 }
 
-public enum WeightAttributes {
+public enum SortAttributes {
     MeasuredOn,
     Weight,
-    Fat
+    Fat,
+    SecondsAfter,
+    WeightDifference,
+    FatDifference
 }
 
 public enum SortDirection {
