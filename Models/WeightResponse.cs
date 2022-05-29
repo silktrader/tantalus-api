@@ -2,12 +2,9 @@
 
 namespace Tantalus.Models; 
 
-public sealed record AllWeightsResponse {
-    public IEnumerable<WeightResponse> Measurements { get; init; }
-    public int Count { get; init; }
-}
-
 public record WeightResponse {
+    [JsonIgnore]
+    public int Total { get; init; }
     public DateTimeOffset MeasuredOn { get; init; }
     public int Weight { get; init; }           
     public float? Fat { get; init; }
@@ -15,8 +12,6 @@ public record WeightResponse {
 }
 
 public record ContiguousWeightResponse : WeightResponse {
-    [JsonIgnore]
-    public int Total { get; init; }
     public int SecondsAfter { get; init; }
     public int WeightDifference { get; init; }
     public float FatDifference { get; init; }

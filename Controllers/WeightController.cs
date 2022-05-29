@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿using System.Collections.Immutable;
+using System.Data.Common;
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -22,8 +23,12 @@ public class WeightController: TantalusController {
     }
     
     [HttpGet]
-    public async Task<ActionResult<AllWeightsResponse>> GetWeightMeasurements([FromQuery] WeightStatRequest parameters) {
-        return Ok(await _weightService.GetWeightMeasurements(UserGuid, parameters));
+    public async Task<ActionResult> GetWeightMeasurements([FromQuery] WeightStatRequest parameters) {
+        var measurements = (await _weightService.GetWeightMeasurements(UserGuid, parameters)).ToImmutableArray();
+        return Ok(new {
+            measurements,
+            total = measurements.FirstOrDefault()?.Total ?? 0
+        });
     }
 
     [HttpPut]
@@ -38,7 +43,7 @@ public class WeightController: TantalusController {
 
     [HttpGet("duplicates")]
     public async Task<ActionResult> GetDuplicates([FromQuery] WeightStatRequest request) {
-        var duplicates = (await _weightService.FindDuplicates(UserGuid, request)).ToList();
+        var duplicates = (await _weightService.FindDuplicates(UserGuid, request)).ToImmutableArray();
         return Ok( new {
             duplicates,
             total = duplicates.FirstOrDefault()?.Total ?? 0

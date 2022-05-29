@@ -8,7 +8,7 @@ using Tantalus.Models;
 namespace Tantalus.Services;
 
 public interface IWeightService {
-    Task<AllWeightsResponse> GetWeightMeasurements(Guid userId, WeightStatRequest parameters);
+    Task<IEnumerable<WeightResponse>> GetWeightMeasurements(Guid userId, WeightStatRequest parameters);
     Task<WeightResponse?> GetWeightMeasurement(DateTime date, Guid userId);
     Task<int> UpdateWeightMeasurement(Guid userId, WeightUpdateRequest request);
     Task<int> ImportWeightMeasurements(IList<WeightMeasurement> measurements, bool overwrite);
@@ -25,29 +25,18 @@ public class WeightService : IWeightService {
         _connectionString = configuration.GetConnectionString("Database") ?? throw new InvalidOperationException();
     }
 
-    public async Task<AllWeightsResponse> GetWeightMeasurements(Guid userId, WeightStatRequest parameters) {
+    public async Task<IEnumerable<WeightResponse>> GetWeightMeasurements(Guid userId, WeightStatRequest parameters) {
 
-        var sortProperty = parameters.Sort == SortAttributes.MeasuredOn ? "measured_on" : parameters.Sort.ToString();
-        
         var query = $@"
-            SELECT weight, fat, measured_on, note
+            SELECT count(*) OVER() as total, weight, fat, measured_on, note
             FROM weight_measurements
             WHERE
                 user_id = @userId AND
                 measured_on >= @start AND
                 measured_on < @end
-            ORDER BY {sortProperty} {parameters.Direction}
+            ORDER BY {GetSortProperty(parameters.Sort)} {parameters.Direction}
             FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
-        // brackets around parameters.Direction required to avoid Rider issues
-
-        const string countQuery = @"
-            SELECT count(*)
-            FROM weight_measurements
-            WHERE
-                user_id = @userId AND
-                measured_on >= @start AND
-                measured_on < @end";
-
+        
         // the end date is inclusive
         var queryParameters = new {
             userId,
@@ -57,10 +46,7 @@ public class WeightService : IWeightService {
             offset = parameters.PageIndex * parameters.PageSize
         };
         await using var connection = DbConnection;
-        return new AllWeightsResponse {
-            Measurements = await connection.QueryAsync<WeightResponse>(query, queryParameters),
-            Count = await connection.ExecuteScalarAsync<int>(countQuery, queryParameters)
-        };
+        return await connection.QueryAsync<WeightResponse>(query, queryParameters);
     }
     
     public async Task<WeightResponse?> GetWeightMeasurement(DateTime date, Guid userId) {
