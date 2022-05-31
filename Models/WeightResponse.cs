@@ -13,6 +13,23 @@ public record WeightResponse {
 
 public record ContiguousWeightResponse : WeightResponse {
     public int SecondsAfter { get; init; }
-    public int WeightDifference { get; init; }
-    public float FatDifference { get; init; }
+    public int WeightChange { get; init; }
+    public float FatChange { get; init; }
+}
+
+public record WeightMonthlyChange {
+    [JsonIgnore]
+    public int Total { get; init; }
+    [JsonIgnore]
+    public DateTime Period { get; init; }
+    
+    public DateOnly Month => DateOnly.FromDateTime(Period);
+    public int? Weight { get; init; }
+    public int? WeightChange { get; init; }
+    public float? Fat { get; init; }
+    public float? FatChange { get; init; }
+    public int RecordedMeasures { get; init; }
+    public int MonthlyAvgCalories { get; init; }
+    public int CaloriesChange { get; init; }
+    public int RecordedDays { get; init; }
 }

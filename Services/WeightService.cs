@@ -14,6 +14,7 @@ public interface IWeightService {
     Task<int> ImportWeightMeasurements(IList<WeightMeasurement> measurements, bool overwrite);
     Task<int> DeleteWeightMeasurement(Guid userId, DateTimeOffset measuredOn);
     Task<IEnumerable<ContiguousWeightResponse>> FindDuplicates(Guid userId, WeightStatRequest request);
+    Task<IEnumerable<WeightMonthlyChange>> GetMonthlyChanges(Guid userId, WeightStatRequest request);
 }
 
 public class WeightService : IWeightService {
@@ -110,8 +111,8 @@ public class WeightService : IWeightService {
                 successor.fat AS fat,
                 successor.note,
                 ROUND(EXTRACT(EPOCH FROM(successor.measured_on - predecessor.measured_on))) as seconds_after,
-                successor.weight - predecessor.weight AS weight_difference,
-                successor.fat - predecessor.fat AS fat_difference
+                successor.weight - predecessor.weight AS weight_change,
+                successor.fat - predecessor.fat AS fat_change
             FROM
                 weight_measurements AS successor,
                 weight_measurements AS predecessor
@@ -133,11 +134,58 @@ public class WeightService : IWeightService {
                 offset = request.PageIndex * request.PageSize });
     }
 
+    public async Task<IEnumerable<WeightMonthlyChange>> GetMonthlyChanges(Guid userId, WeightStatRequest request) {
+        const string query = @"
+            SELECT
+	            count(*) OVER() AS total,
+	            period::date, 
+	            ROUND(weight) AS weight, 
+	            ROUND(weight - lead(weight, 1, NULL) OVER(ORDER BY period DESC)) AS weight_change, 
+	            ROUND(fat:: NUMERIC, 2) AS fat,
+	            ROUND((fat - lead(fat, 1, NULL) OVER(ORDER BY period DESC)):: NUMERIC, 2) AS fat_change,
+	            recorded_measures,
+	            monthly_avg_calories,
+                monthly_avg_calories - lead(monthly_avg_calories, 1, NULL) OVER(ORDER BY period DESC) calories_change,
+	            recorded_days
+            FROM generate_series(date_trunc('month', @start), date_trunc('month', @end), '1 month') as period
+                LEFT JOIN (
+                    SELECT date_trunc('month', measured_on) AS period,
+                        AVG(weight) AS weight,
+                        AVG(fat) AS fat,
+                        count(*) as recorded_measures
+                    FROM weight_measurements
+                    WHERE user_id = @userId
+                    GROUP BY period
+                ) monthly_measurements_averages USING (period)
+                LEFT JOIN (
+                    SELECT date_trunc('month', date) AS period,
+                        ROUND(AVG(daily_calories)) AS monthly_avg_calories,
+                        count(*) as recorded_days
+                    FROM(
+                            SELECT date,
+                                SUM(quantity * calories(foods) / 100) AS daily_calories
+                            FROM portions
+                                JOIN foods ON portions.food_id = foods.id
+                            WHERE portions.user_id = @userId
+                            GROUP BY date
+                        ) daily_cals
+                    WHERE daily_calories > 1500
+                    GROUP BY period
+                ) monthly_caloric_averages USING (period)
+            ORDER BY period DESC";
+        await using var connection = DbConnection;
+        return await connection.QueryAsync<WeightMonthlyChange>(query, new {
+            userId,
+            start = request.Start,
+            end = request.End
+        });
+    }
+
     private static string GetSortProperty(SortAttributes attribute) {
         return attribute switch {
             SortAttributes.MeasuredOn => "measured_on",
-            SortAttributes.WeightDifference => "weight_difference",
-            SortAttributes.FatDifference => "fat_difference",
+            SortAttributes.WeightChange => "weight_change",
+            SortAttributes.FatChange => "fat_change",
             SortAttributes.SecondsAfter => "seconds_after",
             _ => attribute.ToString()
         };

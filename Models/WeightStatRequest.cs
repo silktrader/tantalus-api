@@ -25,8 +25,8 @@ public enum SortAttributes {
     Weight,
     Fat,
     SecondsAfter,
-    WeightDifference,
-    FatDifference
+    WeightChange,
+    FatChange
 }
 
 public enum SortDirection {

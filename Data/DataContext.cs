@@ -129,6 +129,7 @@ public class DataContext : DbContext {
 
         builder.Entity<Portion>(entity => {
             entity.Property(portion => portion.Date).IsRequired().HasColumnType("date");
+            // tk define BRIN index to migrate?
             entity.Property(portion => portion.UserId).IsRequired();
             entity.Property(portion => portion.FoodId).IsRequired();
             entity.Property(portion => portion.Quantity).IsRequired();

@@ -49,6 +49,15 @@ public class WeightController: TantalusController {
             total = duplicates.FirstOrDefault()?.Total ?? 0
         });
     }
+    
+    [HttpGet("monthly-changes")]
+    public async Task<ActionResult> GetMonthlyChanges([FromQuery] WeightStatRequest request) {
+        var records = (await _weightService.GetMonthlyChanges(UserGuid, request)).ToImmutableArray();
+        return Ok(new {
+            records,
+            total = records.FirstOrDefault()?.Total ?? 0
+        });
+    }
 
     [HttpPost("import")]
     public async Task<ActionResult> ImportWeightMeasurements([FromForm] WeightMeasurementImport data) {

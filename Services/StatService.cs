@@ -88,6 +88,8 @@ public class StatService : IStatService {
                 ON calories BETWEEN lower_limit AND upper_limit
             ) averages
             GROUP BY (lower_limit, upper_limit)";
+        
+        // tk use generate series
 
         await using var connection = DbConnection;
         return new MoodPerCaloricRange {
