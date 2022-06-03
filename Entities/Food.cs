@@ -11,6 +11,7 @@ public class Food {
     public float Proteins { get; set; }
     public float Carbs { get; set; }
     public float Fats { get; set; }
+    public float Alcohol { get; set; }
 
     // carbohydrates
     public float? Fibres { get; set; }
@@ -33,9 +34,6 @@ public class Food {
     public float? Calcium { get; set; }
     public float? Zinc { get; set; }
     public float? Iron { get; set; }
-
-    // others
-    public float? Alcohol { get; set; }
 
     public string? Source { get; set; }
     public string? Notes { get; set; }

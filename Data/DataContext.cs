@@ -94,6 +94,7 @@ public class DataContext : DbContext {
             entity.Property(food => food.Proteins).HasDefaultValue(0);
             entity.Property(food => food.Carbs).HasDefaultValue(0);
             entity.Property(food => food.Fats).HasDefaultValue(0);
+            entity.Property(food => food.Alcohol).HasDefaultValue(0);
 
             entity.Property(food => food.Fibres).HasDefaultValue(null);
             entity.Property(food => food.Sugar).HasDefaultValue(null);
@@ -113,7 +114,6 @@ public class DataContext : DbContext {
             entity.Property(food => food.Calcium).HasDefaultValue(null);
             entity.Property(food => food.Zinc).HasDefaultValue(null);
             entity.Property(food => food.Iron).HasDefaultValue(null);
-            entity.Property(food => food.Alcohol).HasDefaultValue(null);
 
             entity.Property(food => food.Created).IsRequired().HasDefaultValueSql("NOW()");
 
