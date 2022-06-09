@@ -79,17 +79,10 @@ public class StatService : IStatService {
                     ) calories_aggregates
                     JOIN diary_entries ON diary_entries.date = calories_aggregates.date AND diary_entries.user_id = @userId                  
                 ) 
-                JOIN (
-                    SELECT *
-                    FROM (
-                        VALUES (0, 1500), (1501, 2000), (2001, 2500), (2501, 3000), (3001, 3500), (3501, 4000), (4001, 10000)
-                    ) calories_ranges (lower_limit, upper_limit)
-                ) ranges
+                JOIN caloric_ranges
                 ON calories BETWEEN lower_limit AND upper_limit
             ) averages
             GROUP BY (lower_limit, upper_limit)";
-        
-        // tk use generate series
 
         await using var connection = DbConnection;
         return new MoodPerCaloricRange {
