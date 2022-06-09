@@ -29,7 +29,7 @@ public record WeightMonthlyChange {
     public float? Fat { get; init; }
     public float? FatChange { get; init; }
     public int RecordedMeasures { get; init; }
-    public int MonthlyAvgCalories { get; init; }
-    public int CaloriesChange { get; init; }
+    public int? MonthlyAvgCalories { get; init; }
+    public int? CaloriesChange { get; init; }
     public int RecordedDays { get; init; }
 }

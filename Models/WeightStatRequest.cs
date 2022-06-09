@@ -15,18 +15,24 @@ public record PaginatedRequest {
 }
 
 public sealed record WeightStatRequest : PaginatedRequest {
-    public SortAttributes Sort { get; init; }
+    public SortAttributes Sort { get; init; }               // Required won't work as the deserializer assigns a default value before validation
     public DateTime Start { get; init; }
     public DateTime End { get; init; }
 }
 
 public enum SortAttributes {
+    None,
     MeasuredOn,
     Weight,
     Fat,
     SecondsAfter,
     WeightChange,
-    FatChange
+    FatChange,
+    Month,                 // used in monthly stats
+    MonthlyAvgCalories,
+    CaloriesChange,
+    RecordedDays,           // used in weight monthly stats
+    RecordedMeasures        // used in weight monthly stats
 }
 
 public enum SortDirection {

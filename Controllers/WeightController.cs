@@ -24,10 +24,10 @@ public class WeightController: TantalusController {
     
     [HttpGet]
     public async Task<ActionResult> GetWeightMeasurements([FromQuery] WeightStatRequest parameters) {
-        var measurements = (await _weightService.GetWeightMeasurements(UserGuid, parameters)).ToImmutableArray();
+        var records = (await _weightService.GetWeightMeasurements(UserGuid, parameters)).ToImmutableArray();
         return Ok(new {
-            measurements,
-            total = measurements.FirstOrDefault()?.Total ?? 0
+            records,
+            total = records.FirstOrDefault()?.Total ?? 0
         });
     }
 
@@ -43,10 +43,10 @@ public class WeightController: TantalusController {
 
     [HttpGet("duplicates")]
     public async Task<ActionResult> GetDuplicates([FromQuery] WeightStatRequest request) {
-        var duplicates = (await _weightService.FindDuplicates(UserGuid, request)).ToImmutableArray();
+        var records = (await _weightService.FindDuplicates(UserGuid, request)).ToImmutableArray();
         return Ok( new {
-            duplicates,
-            total = duplicates.FirstOrDefault()?.Total ?? 0
+            records,
+            total = records.FirstOrDefault()?.Total ?? 0
         });
     }
     

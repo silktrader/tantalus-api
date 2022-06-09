@@ -1,5 +1,6 @@
 ﻿using System.Net.Cache;
 using Dapper;
+using Microsoft.AspNetCore.Server.HttpSys;
 using Models;
 using Npgsql;
 using Tantalus.Entities;
@@ -103,7 +104,7 @@ public class WeightService : IWeightService {
     }
 
     public async Task<IEnumerable<ContiguousWeightResponse>> FindDuplicates(Guid userId, WeightStatRequest request) {
-        var query = $@"
+        const string query = @"
             SELECT
                 COUNT(successor.measured_on) OVER() AS total,
                 successor.measured_on AS measured_on,
@@ -120,13 +121,15 @@ public class WeightService : IWeightService {
                 successor.user_id = @userId AND
                 predecessor.user_id = @userId AND
                 age(successor.measured_on, predecessor.measured_on) BETWEEN '1 millisecond' AND '20 minute'
+            ";
+
+        var paginationExtra = $@"
             ORDER BY {GetSortProperty(request.Sort)} {request.Direction}
             FETCH FIRST @pageSize ROWS ONLY
             OFFSET @offset";
-           
         
         await using var connection = DbConnection;
-        return await connection.QueryAsync<ContiguousWeightResponse>(query, 
+        return await connection.QueryAsync<ContiguousWeightResponse>(query + paginationExtra, 
             new { userId, 
                 request.Start, 
                 end = request.End.AddDays(1),
@@ -171,13 +174,19 @@ public class WeightService : IWeightService {
                         ) daily_cals
                     WHERE daily_calories > 1500
                     GROUP BY period
-                ) monthly_caloric_averages USING (period)
-            ORDER BY period DESC";
+                ) monthly_caloric_averages USING (period)";
+        
+            var paginationExtra = $@"
+                ORDER BY {(request.Sort == SortAttributes.None ? "period" : GetSortProperty(request.Sort))} {request.Direction}
+                FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
+            
         await using var connection = DbConnection;
-        return await connection.QueryAsync<WeightMonthlyChange>(query, new {
+        return await connection.QueryAsync<WeightMonthlyChange>(query + paginationExtra, new {
             userId,
             start = request.Start,
-            end = request.End
+            end = request.End,
+            request.PageSize,
+            offset = request.PageIndex * request.PageSize
         });
     }
 
@@ -187,6 +196,11 @@ public class WeightService : IWeightService {
             SortAttributes.WeightChange => "weight_change",
             SortAttributes.FatChange => "fat_change",
             SortAttributes.SecondsAfter => "seconds_after",
+            SortAttributes.MonthlyAvgCalories => "monthly_avg_calories",
+            SortAttributes.CaloriesChange => "calories_change",
+            SortAttributes.RecordedDays => "recorded_days",
+            SortAttributes.RecordedMeasures => "recorded_measures",
+            SortAttributes.Month => "period",                   // not ideal, due to JSON des.
             _ => attribute.ToString()
         };
     }
