@@ -11,6 +11,7 @@ public class DataContext : DbContext {
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RefreshToken.RevocationReason>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<Access>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<Meal>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<Sex>();
     }
 
     public DataContext(IConfiguration configuration) {
@@ -33,8 +34,12 @@ public class DataContext : DbContext {
     }
 
     protected override void OnModelCreating(ModelBuilder builder) {
+        
+        // enums
         builder.HasPostgresEnum<RefreshToken.RevocationReason>();
         builder.HasPostgresEnum<Access>();
+        builder.HasPostgresEnum<Meal>();
+        builder.HasPostgresEnum<Sex>();
 
         builder.Entity<User>(entity => {
             entity.Property(user => user.Name)
@@ -48,6 +53,9 @@ public class DataContext : DbContext {
             entity.Property(user => user.FullName)
                 .IsRequired()
                 .HasMaxLength(100);
+
+            entity.Property(user => user.BirthDate).HasColumnType("date");
+            entity.Property(user => user.Sex).HasDefaultValue(Sex.Unspecified);
 
             entity.Property(user => user.HashedPassword)
                 .IsRequired()
@@ -138,7 +146,6 @@ public class DataContext : DbContext {
                 .WithMany(entry => entry.Portions)
                 .HasForeignKey(portion => new { DiaryEntryDate = portion.Date, DiaryEntryUserId = portion.UserId });
         });
-        builder.HasPostgresEnum<Meal>();
 
         builder.Entity<DiaryEntry>(entity => {
             entity.HasKey(entry => new { entry.Date, entry.UserId });

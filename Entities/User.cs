@@ -15,9 +15,15 @@ public class User {
     public string Name { get; set; }
     public string FullName { get; set; }
     public string Email { get; set; }
+    
+    public int? Height { get; set; }                // in cms
+    public int? StepLength { get; set; }            // in cms
+    public DateTime? BirthDate { get; set; }
+    
     public string HashedPassword { get; set; }
     public string PasswordSalt { get; set; }
     public DateTime CreationDate { get; set; }
+    public Sex Sex { get; set; }
 
     public List<RefreshToken> RefreshTokens { get; set; } = new();
     public List<Food> Foods { get; set; } = new();
