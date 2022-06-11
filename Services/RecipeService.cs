@@ -112,7 +112,7 @@ public class RecipeService : IRecipeService {
             SELECT id, name, 0 as priority, true as isRecipe 
             FROM user_recipes(@userId) 
             WHERE    name ilike @pattern
-            LIMIT    @limit";
+            FETCH FIRST @limit ROWS ONLY";
         await using var connection = DbConnection;
         return await connection.QueryAsync<PortionResourceResponse>(query, new { userId, pattern = $"%{nameFilter}%", limit });
     }

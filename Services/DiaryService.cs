@@ -170,7 +170,7 @@ public class DiaryService : IDiaryService {
                     user_id = @userId AND
                     measured_on < @date
                 ORDER BY measured_on DESC
-                LIMIT 1
+                FETCH FIRST 1 ROWS ONLY
             ) previous, (
                 SELECT AVG(weight) AS weight, AVG(fat) AS fat
                 FROM weight_measurements

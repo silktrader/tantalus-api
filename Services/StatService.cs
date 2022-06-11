@@ -45,7 +45,8 @@ public class StatService : IStatService {
                      USING(id)) AS combined
                      JOIN foods USING(id)
                      ORDER BY (percent, total) DESC
-                     LIMIT @records";
+                     FETCH FIRST @records ROWS ONLY";
+        
         await using var connection = DbConnection;
         return new MoodFoodsResponse {
             Foods = await connection.QueryAsync<MoodFood>(query,
@@ -123,7 +124,7 @@ public class StatService : IStatService {
                 ORDER BY
                     food_id = ANY(@included) DESC,
                     average_mood {sortOrder}                    
-                LIMIT @records
+                FETCH FIRST @records ROWS ONLY
             ) sorted_foods_averages
             JOIN foods USING (id)
             ORDER BY average_mood {sortOrder}";
@@ -178,7 +179,7 @@ public class StatService : IStatService {
             FROM weight_measurements
             WHERE user_id = @userId
             ORDER BY measured_on DESC
-            LIMIT 1";
+            FETCH FIRST 1 ROWS ONLY";
 
         await using var connection = DbConnection;
         return new StatsOverviewResponse {

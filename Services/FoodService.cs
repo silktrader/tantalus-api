@@ -19,7 +19,7 @@ public interface IFoodService {
     Task<bool> Delete(Guid foodId, Guid userId);
     Task<(IEnumerable<Food> foods, int count)> GetFoods(GetFoodsParameters parameters, Guid userId);
     Task<IEnumerable<Food>> GetFoods(IList<Guid> foodIds, Guid userId);
-    Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit);
+    Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int hintsNumber);
     Task<GetFoodStatsResponse> GetFoodStats(Guid foodId, Guid userId);
     Task<bool> CanViewFood(Guid foodId, Guid userId);
 }
@@ -73,7 +73,7 @@ public class FoodService : IFoodService {
     /// or the latter's access is set to either 'shared', or 'editable', by way of a DB function check.
     /// </summary>
     public async Task<bool> CanViewFood(Guid foodId, Guid userId) {
-        const string query = "SELECT EXISTS (SELECT TRUE FROM user_foods(@userId) WHERE id=@foodId)";
+        const string query = "SELECT EXISTS (SELECT TRUE FROM user_foods(@userId) WHERE id=@foodId)"; // tk there's better
         await using var connection = DbConnection;
         return await connection.ExecuteScalarAsync<bool>(query, new { foodId, userId });
     }
@@ -104,7 +104,7 @@ public class FoodService : IFoodService {
         };
 
         var filter = $@"
-            SELECT * FROM user_foods(@userId) {nameFilter} 
+            SELECT * FROM user_foods(@userId) as foods {nameFilter} 
             ORDER BY {calculatedProperty ?? parameters.SortProperty.ToString()} {(parameters.Ascending ? "asc" : "desc")} 
             FETCH FIRST @pageSize ROWS ONLY OFFSET @offset";
         
@@ -137,23 +137,19 @@ public class FoodService : IFoodService {
         return await connection.QueryFirstAsync<bool>(query, new { shortUrl });
     }
     
-    public async Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int limit) {
-        var pattern = $"%{name}%";
-        var today = DateTime.Now;
-        var monthAgo = today.AddMonths(-1);
+    public async Task<IEnumerable<PortionResourceResponse>> GetPortionResourceHints(string name, Guid userId, int hintsNumber) {
         const string query = @"
-            SELECT   id, name, (
-                SELECT Count(*)
-                FROM   portions
-                WHERE  food_id = foods.id
-                AND    date <= @today
-                AND    date >= @monthAgo) AS priority
-            FROM     user_foods(@userId) AS foods
-            WHERE    name ilike @pattern
-            ORDER BY priority DESC
-            LIMIT    @limit";
+            SELECT id, name, (
+                    SELECT COUNT(*)
+                    FROM recent_portions
+                    WHERE food_id = foods.id
+                ) frequency
+            FROM user_foods(@userId) AS foods
+            WHERE name ILIKE @pattern
+            ORDER BY frequency DESC
+            FETCH FIRST @hintsNumber ROWS ONLY";
         await using var connection = DbConnection;
-        return await connection.QueryAsync<PortionResourceResponse>(query, new { pattern, userId, limit, today, monthAgo });
+        return await connection.QueryAsync<PortionResourceResponse>(query, new { pattern = $"%{name}%", userId, hintsNumber });
     }
 
     public async Task<GetFoodStatsResponse> GetFoodStats(Guid foodId, Guid userId) {
@@ -177,7 +173,7 @@ public class FoodService : IFoodService {
                   WHERE  foods.id = @foodId)) AS frequent_foods
             GROUP BY (id, name, short_url)
             ORDER BY frequency DESC
-            LIMIT    5";
+            FETCH FIRST 5 ROWS ONLY";
 
         // the results could be included in other queries; this is more legible, maintainable
         const string consumptionQuery = @"
@@ -185,22 +181,23 @@ public class FoodService : IFoodService {
                    Sum(quantity) AS quantity,
                    Max(quantity) AS max,
                    Max(date)     AS last_eaten
-            FROM   portions
+            FROM   portions            
             WHERE  food_id = @foodId
-                   AND date BETWEEN '2022-04-01' AND Now();";
+            AND    user_id = @userId";
 
-        // use view tk!
         const string frequentMealsQuery = @"
             SELECT *
-            FROM   (SELECT Count(*) AS frequency,
-                           meal
-                    FROM   portions
-                    WHERE  food_id = @foodId
-                           AND date BETWEEN '2022-04-01' AND Now()
-                    GROUP  BY meal) AS frequent_meals
-            WHERE  frequency > 0
-            ORDER  BY frequency DESC
-            LIMIT  3;";
+            FROM (
+                SELECT COUNT(*) AS frequency, meal
+                FROM recent_portions
+                WHERE
+                    food_id = @foodId AND
+                    user_id = @userId
+                GROUP BY
+                    meal
+            ) frequent_meals
+            WHERE frequency > 0
+            ORDER BY frequency DESC";
 
         const string recipesQuery = @"
             SELECT id, quantity, name
@@ -229,7 +226,7 @@ public class FoodService : IFoodService {
                 id != @foodId AND
                 divergence < 20
             ORDER BY divergence
-            LIMIT 5";
+            FETCH FIRST 5 ROWS ONLY";
         
         await using var connection = DbConnection;
         var (count, quantity, max, lastEaten) = await connection.QueryFirstAsync<(int count, int quantity, int max, DateTime lastEaten)>(consumptionQuery, parameters);
